@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BottomToolbar } from './components/BottomToolbar.js';
+import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { DebugView } from './components/DebugView.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import { PULSE_ANIMATION_DURATION_SEC } from './constants.js';
@@ -40,6 +41,10 @@ interface HiredAgent {
   hireDate: string;
   zone?: string;
   pixelCharId?: number;
+  salary: number;
+  performance: number;  // 0-100
+  level: number;        // 1=Junior, 2=Mid, 3=Senior, 4=Lead
+  tasksCompleted: number;
 }
 
 const hiredAgentsStore: HiredAgent[] = [];
@@ -53,6 +58,12 @@ function addHiredAgent(agent: HiredAgent) {
 function removeHiredAgent(id: string) {
   const idx = hiredAgentsStore.findIndex(a => a.id === id);
   if (idx >= 0) hiredAgentsStore.splice(idx, 1);
+  hiredAgentsListeners.forEach(l => l());
+}
+
+function updateHiredAgent(id: string, patch: Partial<HiredAgent>) {
+  const agent = hiredAgentsStore.find(a => a.id === id);
+  if (agent) Object.assign(agent, patch);
   hiredAgentsListeners.forEach(l => l());
 }
 
@@ -161,18 +172,29 @@ function AgentListPanel({ agents, onSelect, selectedId }: {
 }
 
 // ── Agent Detail Panel ───────────────────────────────────────────────────────
-function AgentDetailPanel({ agent, onClose, onFire }: {
+const LEVEL_NAMES = ['Junior', 'Mid', 'Senior', 'Lead', 'Principal'];
+
+function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
   agent: HiredAgent;
   onClose: () => void;
   onFire: (id: string) => void;
+  onPromote: (id: string) => void;
+  onDemote: (id: string) => void;
 }) {
   const [confirmFire, setConfirmFire] = useState(false);
+  const levelName = LEVEL_NAMES[(agent.level ?? 1) - 1] ?? 'Junior';
+  const perfColor = (agent.performance ?? 60) >= 80 ? '#00ff88' : (agent.performance ?? 60) >= 50 ? '#ffaa44' : '#ff4444';
+  const btnStyle: React.CSSProperties = {
+    flex: 1, padding: '4px 0', fontSize: '18px',
+    background: 'var(--pixel-btn-bg)', color: 'var(--pixel-text)',
+    border: '2px solid var(--pixel-border)', borderRadius: 0, cursor: 'pointer',
+  };
   return (
     <div style={{
       position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
       zIndex: 60, background: 'var(--pixel-bg)',
       border: '2px solid var(--pixel-agent-border)',
-      boxShadow: 'var(--pixel-shadow)', minWidth: 260,
+      boxShadow: 'var(--pixel-shadow)', minWidth: 270,
     }}>
       <div style={{
         background: 'var(--pixel-agent-bg)', borderBottom: '2px solid var(--pixel-agent-border)',
@@ -185,41 +207,66 @@ function AgentDetailPanel({ agent, onClose, onFire }: {
           fontSize: '20px', cursor: 'pointer', padding: '0 4px',
         }}>✕</button>
       </div>
-      <div style={{ padding: '12px 14px', fontSize: '20px', lineHeight: 2 }}>
-        <div>
-          <span style={{ color: 'var(--pixel-text-dim)' }}>Role: </span>
-          <span style={{ color: ROLE_COLORS[agent.role] || '#aaaaff' }}>{agent.role}</span>
-        </div>
-        <div>
-          <span style={{ color: 'var(--pixel-text-dim)' }}>Dept: </span>
-          <span style={{ color: 'var(--pixel-text)' }}>{agent.dept}</span>
-        </div>
-        <div>
-          <span style={{ color: 'var(--pixel-text-dim)' }}>Status: </span>
+      <div style={{ padding: '10px 14px', fontSize: '19px', lineHeight: 1.9, fontFamily: 'monospace' }}>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Role: </span>
+          <span style={{ color: ROLE_COLORS[agent.role] || '#aaaaff' }}>{agent.role}</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Level: </span>
+          <span style={{ color: '#ffdd44' }}>{levelName}</span>
+          <span style={{ color: '#444', fontSize: 15 }}> (L{agent.level ?? 1})</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Dept: </span>
+          <span>{agent.dept}</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Status: </span>
           <span style={{ color: agent.status === 'Working' ? '#00ff88' : agent.status === 'In Meeting' ? '#ffd700' : agent.status === 'On Break' ? '#ff9966' : '#aaaaaa' }}>
-            {agent.status}
-          </span>
+            {agent.status}</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Salary: </span>
+          <span style={{ color: '#ffdd44' }}>${(agent.salary ?? 4000).toLocaleString()}/mo</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Tasks: </span>
+          <span style={{ color: '#aaccff' }}>{agent.tasksCompleted ?? 0}</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Hired: </span>
+          <span>{agent.hireDate}</span></div>
+
+        {/* Performance bar */}
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+            <span style={{ color: 'var(--pixel-text-dim)', fontSize: 17 }}>Performance</span>
+            <span style={{ color: perfColor, fontSize: 17 }}>{agent.performance ?? 60}%</span>
+          </div>
+          <div style={{ height: 7, background: '#1a1a2e', border: '1px solid #333' }}>
+            <div style={{ height: '100%', width: `${agent.performance ?? 60}%`, background: perfColor, transition: 'width 0.3s' }} />
+          </div>
         </div>
-        <div>
-          <span style={{ color: 'var(--pixel-text-dim)' }}>Hired: </span>
-          <span style={{ color: 'var(--pixel-text)' }}>{agent.hireDate}</span>
+
+        {/* Promote / Demote */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+          <button
+            onClick={() => onPromote(agent.id)}
+            disabled={(agent.level ?? 1) >= 5}
+            style={{ ...btnStyle, opacity: (agent.level ?? 1) >= 5 ? 0.4 : 1 }}
+          >⬆ Promote</button>
+          <button
+            onClick={() => onDemote(agent.id)}
+            disabled={(agent.level ?? 1) <= 1}
+            style={{ ...btnStyle, opacity: (agent.level ?? 1) <= 1 ? 0.4 : 1 }}
+          >⬇ Demote</button>
         </div>
-        <div style={{ marginTop: 10 }}>
+
+        {/* Fire */}
+        <div style={{ marginTop: 6 }}>
           {!confirmFire ? (
             <button onClick={() => setConfirmFire(true)} style={{
-              width: '100%', padding: '5px', fontSize: '20px',
+              width: '100%', padding: '5px', fontSize: '19px',
               background: 'var(--pixel-danger-bg)', color: '#fff',
               border: '2px solid #ff4444', borderRadius: 0, cursor: 'pointer',
             }}>🔥 Fire Agent</button>
           ) : (
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => onFire(agent.id)} style={{
-                flex: 1, padding: '5px', fontSize: '20px',
+                flex: 1, padding: '5px', fontSize: '19px',
                 background: 'var(--pixel-danger-bg)', color: '#fff',
                 border: '2px solid #ff4444', borderRadius: 0, cursor: 'pointer',
               }}>Yes, Fire</button>
               <button onClick={() => setConfirmFire(false)} style={{
-                flex: 1, padding: '5px', fontSize: '20px',
+                flex: 1, padding: '5px', fontSize: '19px',
                 background: 'var(--pixel-btn-bg)', color: 'var(--pixel-text)',
                 border: '2px solid var(--pixel-border)', borderRadius: 0, cursor: 'pointer',
               }}>Cancel</button>
@@ -240,6 +287,10 @@ if (typeof window !== 'undefined') {
       name, role, dept,
       status: 'Working',
       hireDate: new Date().toLocaleDateString(),
+      salary: ROLE_SALARY[role] ?? 4000,
+      performance: 60 + Math.floor(Math.random() * 25),
+      level: 1,
+      tasksCompleted: 0,
     });
   });
 }
@@ -375,6 +426,7 @@ function App() {
   const urlFloorParam = parseInt(new URLSearchParams(window.location.search).get('floor') ?? '0', 10);
   const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   // ── Washroom occupancy ────────────────────────────────────────
   const [washroomOccupied, setWashroomOccupied] = useState(false);
@@ -477,7 +529,46 @@ function App() {
       zone: 'workspace',
       hireDate: new Date().toLocaleDateString(),
       pixelCharId: numericId,
+      salary: ROLE_SALARY[role] ?? 4000,
+      performance: 60 + Math.floor(Math.random() * 25), // 60-85 starting perf
+      level: 1,
+      tasksCompleted: 0,
     });
+  }, []);
+
+  const handlePromoteAgent = useCallback((id: string) => {
+    const agent = hiredAgentsStore.find(a => a.id === id);
+    if (!agent || (agent.level ?? 1) >= 5) return;
+    const newLevel = (agent.level ?? 1) + 1;
+    const raise = Math.round((agent.salary ?? 4000) * 0.15);
+    updateHiredAgent(id, { level: newLevel, salary: (agent.salary ?? 4000) + raise });
+  }, []);
+
+  const handleDemoteAgent = useCallback((id: string) => {
+    const agent = hiredAgentsStore.find(a => a.id === id);
+    if (!agent || (agent.level ?? 1) <= 1) return;
+    const newLevel = (agent.level ?? 1) - 1;
+    const cut = Math.round((agent.salary ?? 4000) * 0.10);
+    updateHiredAgent(id, { level: newLevel, salary: Math.max(1500, (agent.salary ?? 4000) - cut) });
+  }, []);
+
+  // Performance drift + tasks completed every 30s
+  useEffect(() => {
+    const t = setInterval(() => {
+      for (const agent of hiredAgentsStore) {
+        // Performance drifts ±3 based on status
+        const drift = agent.status === 'Working' ? Math.floor(Math.random() * 5) - 1
+                    : agent.status === 'In Meeting' ? Math.floor(Math.random() * 3) - 1
+                    : agent.status === 'On Break' ? -Math.floor(Math.random() * 3)
+                    : -1;
+        const newPerf = Math.min(100, Math.max(10, (agent.performance ?? 60) + drift));
+        const newTasks = agent.status === 'Working'
+          ? (agent.tasksCompleted ?? 0) + Math.floor(Math.random() * 2)
+          : (agent.tasksCompleted ?? 0);
+        updateHiredAgent(agent.id, { performance: newPerf, tasksCompleted: newTasks });
+      }
+    }, 30000);
+    return () => clearInterval(t);
   }, []);
 
   const handleFireAgent = useCallback((id: string) => {
@@ -632,11 +723,14 @@ function App() {
       {selectedHiredAgent && (
         <AgentDetailPanel
           agent={selectedHiredAgent}
+          onPromote={handlePromoteAgent}
+          onDemote={handleDemoteAgent}
           onClose={() => setSelectedHiredId(null)}
           onFire={handleFireAgent}
         />
       )}
 
+      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} />}
       {!isEmbedMode && <BottomToolbar
         isEditMode={editor.isEditMode}
         onOpenClaude={editor.handleOpenClaude}
@@ -650,6 +744,8 @@ function App() {
         onHireAgent={handleHireAgent}
         currentFloor={currentFloor}
         onFloorChange={handleFloorChange}
+        onStatsClick={() => setStatsOpen(v => !v)}
+        statsOpen={statsOpen}
       /> }
 
       {editor.isEditMode && editor.isDirty && (

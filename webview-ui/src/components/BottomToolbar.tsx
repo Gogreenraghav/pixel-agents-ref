@@ -8,6 +8,8 @@ interface BottomToolbarProps {
   onHireAgent?: (name: string, role: string, dept: string) => void;
   currentFloor?: number;
   onFloorChange?: (floor: number) => void;
+  onStatsClick?: () => void;
+  statsOpen?: boolean;
   isEditMode: boolean;
   onOpenClaude: () => void;
   onToggleEditMode: () => void;
@@ -289,6 +291,8 @@ export function BottomToolbar({
   onHireAgent,
   currentFloor = 0,
   onFloorChange,
+  onStatsClick,
+  statsOpen,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -499,6 +503,23 @@ export function BottomToolbar({
           title="Hire a new agent with a role"
         >
           👤 Hire
+        </button>
+
+        {/* STATS button */}
+        <button
+          onClick={onStatsClick}
+          onMouseEnter={() => setHovered('stats')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            padding: '5px 12px',
+            background: statsOpen ? 'var(--pixel-active-bg)' : hovered === 'stats' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+            color: statsOpen ? 'var(--pixel-agent-text)' : 'var(--pixel-text-dim)',
+            border: statsOpen ? '2px solid var(--pixel-agent-border)' : btnBase.border,
+          }}
+          title="View office stats"
+        >
+          📊 Stats
         </button>
 
         {/* FLOOR SELECTOR */}
