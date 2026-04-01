@@ -443,6 +443,7 @@ function App() {
   const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [autoEvents, setAutoEvents] = useState(true);
   const [eventLog, setEventLog] = useState<OfficeEvent[]>([]);
   const [dismissedEvent, setDismissedEvent] = useState(false);
 
@@ -578,6 +579,7 @@ function App() {
 
   // ── Office Events ────────────────────────────────────────────────────────────
   const { activeEvent, triggerEvent, EVENT_TEMPLATES } = useOfficeEvents({
+    autoEvents,
     agents: hiredAgents,
     onEventStart: (evt) => {
       setEventLog(prev => [evt, ...prev.slice(0, 9)]);
@@ -765,7 +767,7 @@ function App() {
         />
       )}
 
-      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} />}
+      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
       {!isEmbedMode && !dismissedEvent && (
