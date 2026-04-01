@@ -341,7 +341,7 @@ function App() {
   // useExtensionMessages listener has been registered.
   useEffect(() => {
     if (isBrowserRuntime) {
-      void import('./browserMock.js').then(({ dispatchMockMessages }) => dispatchMockMessages());
+      void import('./browserMock.js').then(async ({ initBrowserMock, dispatchMockMessages }) => { await initBrowserMock(); dispatchMockMessages(); });
     }
   }, []);
 
@@ -371,7 +371,10 @@ function App() {
   const [selectedHiredId, setSelectedHiredId] = useState<string | null>(null);
 
   // ── Floor state ───────────────────────────────────────────────
-  const [currentFloor, setCurrentFloor] = useState(0);
+  // URL param: ?floor=N loads that floor automatically
+  const urlFloorParam = parseInt(new URLSearchParams(window.location.search).get('floor') ?? '0', 10);
+  const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
+  const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
 
   // ── Washroom occupancy ────────────────────────────────────────
   const [washroomOccupied, setWashroomOccupied] = useState(false);
@@ -441,7 +444,7 @@ function App() {
   useEffect(() => {
     if (!layoutReady) return;
     // Small delay to ensure browserMock layout has settled
-    const t = setTimeout(() => { void loadFloorFile(0); }, 500);
+    const t = setTimeout(() => { void loadFloorFile(urlFloorParam || 0); }, 500);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutReady]);
@@ -634,7 +637,7 @@ function App() {
         />
       )}
 
-      <BottomToolbar
+      {!isEmbedMode && <BottomToolbar
         isEditMode={editor.isEditMode}
         onOpenClaude={editor.handleOpenClaude}
         onToggleEditMode={editor.handleToggleEditMode}
@@ -647,7 +650,7 @@ function App() {
         onHireAgent={handleHireAgent}
         currentFloor={currentFloor}
         onFloorChange={handleFloorChange}
-      />
+      /> }
 
       {editor.isEditMode && editor.isDirty && (
         <EditActionBar editor={editor} editorState={editorState} />

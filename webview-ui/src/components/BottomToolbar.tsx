@@ -571,6 +571,19 @@ export function BottomToolbar({
         </div>
 
         <button
+          onClick={() => window.open('./multi-floor.html', '_blank')}
+          onMouseEnter={() => setHovered('multifloor')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background: hovered === 'multifloor' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="View all floors"
+        >
+          ⊞ All Floors
+        </button>
+
+        <button
           onClick={onToggleEditMode}
           onMouseEnter={() => setHovered('edit')}
           onMouseLeave={() => setHovered(null)}
