@@ -480,6 +480,22 @@ function App() {
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
+  // ── Game Economy ─────────────────────────────────────────────────────────
+  const LS_BALANCE_KEY = 'pixeloffice_balance';
+  const LS_BUDGET_KEY  = 'pixeloffice_dept_budgets';
+  const STARTING_BALANCE = 50000;
+
+  const [companyBalance, setCompanyBalance] = useState<number>(() => {
+    try { const s = localStorage.getItem(LS_BALANCE_KEY); return s ? parseFloat(s) : STARTING_BALANCE; } catch { return STARTING_BALANCE; }
+  });
+  const [deptBudgets, setDeptBudgets] = useState<Record<string, number>>(() => {
+    try { const s = localStorage.getItem(LS_BUDGET_KEY); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
+
+  // Revenue: each working agent generates $200-$400/day (~$6k-$12k/mo)
+  // Deduct payroll each "tick" (every 60s = simulated day)
+  const FX_RATES_DEFAULT: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
+
   const [autoEvents, setAutoEvents] = useState(true);
   const [eventLog, setEventLog] = useState<OfficeEvent[]>([]);
   const [dismissedEvent, setDismissedEvent] = useState(false);
@@ -626,6 +642,47 @@ function App() {
     onEventEnd: (_evt) => { /* already handled in hook */ },
     onAgentStatusChange: handleAgentStatusChange,
   });
+
+  // ── Game Loop: Revenue + Payroll tick every 60s ─────────────────────────
+  useEffect(() => {
+    const TICK_MS = 60000; // 60s = 1 simulated work-day
+    const t = setInterval(() => {
+      setCompanyBalance(prev => {
+        const agents = hiredAgentsStore;
+        // Revenue: working agents generate value
+        const revenue = agents.reduce((sum, a) => {
+          if (a.status === 'Working') return sum + 250 + (a.performance ?? 60) * 2;
+          if (a.status === 'In Meeting') return sum + 150;
+          return sum + 50;
+        }, 0);
+        // Payroll cost per tick (monthly / 30 days)
+        const payroll = agents.reduce((sum, a) => {
+          const salUSD = (a.salary ?? 4000) / (FX_RATES_DEFAULT[a.currency ?? 'USD'] ?? 1);
+          return sum + salUSD / 30;
+        }, 0);
+        const newBalance = prev + revenue - payroll;
+        try { localStorage.setItem(LS_BALANCE_KEY, String(newBalance)); } catch {}
+        return newBalance;
+      });
+    }, TICK_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  // ── Dept budget handler ───────────────────────────────────────────────────
+  const handleDeptBudgetChange = useCallback((dept: string, budget: number) => {
+    setDeptBudgets(prev => {
+      const next = { ...prev, [dept]: budget };
+      try { localStorage.setItem(LS_BUDGET_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Compute monthly revenue for display (based on current agent status)
+  const monthlyRevenue = hiredAgents.reduce((sum, a) => {
+    if (a.status === 'Working') return sum + (250 + (a.performance ?? 60) * 2) * 30;
+    if (a.status === 'In Meeting') return sum + 150 * 30;
+    return sum + 50 * 30;
+  }, 0);
 
   // Performance drift + tasks completed every 30s
   useEffect(() => {
@@ -795,6 +852,24 @@ function App() {
         }}
       />
 
+      {/* ── Company Balance HUD ─────────────────────────────── */}
+      {!isEmbedMode && (
+        <div style={{
+          position: 'absolute', top: 8, right: 8, zIndex: 45,
+          background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)',
+          padding: '4px 12px', fontFamily: 'monospace', fontSize: '18px',
+          display: 'flex', gap: 16, alignItems: 'center',
+          boxShadow: 'var(--pixel-shadow)', pointerEvents: 'none',
+        }}>
+          <span style={{ color: companyBalance >= 0 ? '#00ff88' : '#ff4444' }}>
+            💰 ${Math.round(companyBalance).toLocaleString()}
+          </span>
+          <span style={{ color: '#aaccff' }}>
+            📈 +${Math.round(monthlyRevenue / 30).toLocaleString()}/day
+          </span>
+        </div>
+      )}
+
       {/* Paperclip: Agent List Panel */}
       <AgentListPanel
         agents={hiredAgents}
@@ -813,7 +888,7 @@ function App() {
         />
       )}
 
-      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
+      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
       {!isEmbedMode && !dismissedEvent && (

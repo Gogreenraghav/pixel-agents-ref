@@ -74,6 +74,10 @@ interface Props {
   autoEvents?: boolean;
   onAutoEventsChange?: (v: boolean) => void;
   hireHistory?: HireHistoryEntry[];
+  deptBudgets?: Record<string, number>;
+  onDeptBudgetChange?: (dept: string, budget: number) => void;
+  companyBalance?: number;
+  companyRevenue?: number;
 }
 
 const FLOOR_CAPACITY = 10;
@@ -110,7 +114,7 @@ function PixelProgressBar({ value, max, color }: { value: number; max: number; c
   );
 }
 
-export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [], autoEvents = true, onAutoEventsChange, hireHistory = [] }: Props) {
+export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [], autoEvents = true, onAutoEventsChange, hireHistory = [], deptBudgets = {}, onDeptBudgetChange, companyBalance = 0, companyRevenue = 0 }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings' | 'events'>('overview');
   const [selectedEventType, setSelectedEventType] = useState<string>('random');
   const DEFAULT_FX_RATES: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
@@ -334,12 +338,26 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
           <div>
             <div style={{ ...sectionHead, marginTop: 0, borderTop: 'none' }}>Company Budget</div>
             <div style={row}>
-              <span style={labelStyle}>Total Run-Rate</span>
-              <span style={{ color: '#ffdd44', fontWeight: 'bold' }}>${monthlyCost.toLocaleString()}/mo</span>
+              <span style={labelStyle}>💰 Balance</span>
+              <span style={{ color: companyBalance >= 0 ? '#00ff88' : '#ff4444', fontWeight: 'bold' }}>${Math.round(companyBalance).toLocaleString()}</span>
             </div>
             <div style={row}>
-              <span style={labelStyle}>Average Salary</span>
-              <span style={{ color: '#aaffcc', fontWeight: 'bold' }}>${avgSalary.toLocaleString()}</span>
+              <span style={labelStyle}>📈 Revenue/mo</span>
+              <span style={{ color: '#aaccff', fontWeight: 'bold' }}>${Math.round(companyRevenue).toLocaleString()}</span>
+            </div>
+            <div style={row}>
+              <span style={labelStyle}>💸 Payroll/mo</span>
+              <span style={{ color: '#ffdd44', fontWeight: 'bold' }}>${Math.round(monthlyCost).toLocaleString()}</span>
+            </div>
+            <div style={row}>
+              <span style={labelStyle}>📊 Net/mo</span>
+              <span style={{ color: companyRevenue - monthlyCost >= 0 ? '#00ff88' : '#ff6666', fontWeight: 'bold' }}>
+                {companyRevenue - monthlyCost >= 0 ? '+' : ''}${Math.round(companyRevenue - monthlyCost).toLocaleString()}
+              </span>
+            </div>
+            <div style={row}>
+              <span style={labelStyle}>Avg Salary</span>
+              <span style={{ color: '#888899' }}>${Math.round(avgSalary).toLocaleString()}</span>
             </div>
 
             <div style={sectionHead}>Department Breakdown</div>
@@ -355,21 +373,58 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
                 <div style={{ color: '#446644', fontSize: '16px', marginTop: 6 }}>Hire agents to see payroll data</div>
               </div>
             ) : (
-              deptsByCost.map(([dept, data]) => (
-                <div key={dept} style={{ padding: '6px 12px', borderBottom: '1px dashed #333344' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: DEPT_COLORS[dept] ?? '#888', fontWeight: 'bold', fontSize: '20px' }}>
-                      {dept.toUpperCase()}
-                    </span>
-                    <span style={{ color: '#ffdd44', fontWeight: 'bold', fontSize: '20px' }}>
-                      ${data.cost.toLocaleString()}
-                    </span>
+              deptsByCost.map(([dept, data]) => {
+                const budget = deptBudgets[dept] ?? 0;
+                const overBudget = budget > 0 && data.cost > budget;
+                const usagePct = budget > 0 ? Math.min(100, Math.round((data.cost / budget) * 100)) : 0;
+                return (
+                  <div key={dept} style={{ padding: '8px 12px', borderBottom: '1px dashed #333344', background: overBudget ? '#1a0a0a' : 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ color: DEPT_COLORS[dept] ?? '#888', fontWeight: 'bold', fontSize: '19px' }}>
+                        {overBudget ? '⚠ ' : ''}{dept.toUpperCase()}
+                      </span>
+                      <span style={{ color: overBudget ? '#ff6666' : '#ffdd44', fontWeight: 'bold', fontSize: '19px' }}>
+                        ${Math.round(data.cost).toLocaleString()}
+                        {budget > 0 && <span style={{ color: '#555577', fontSize: '15px' }}> / ${budget.toLocaleString()}</span>}
+                      </span>
+                    </div>
+                    {budget > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <div style={{ flex: 1, height: 8, background: '#111122', border: '1px solid #333344', position: 'relative' }}>
+                          <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${usagePct}%`, background: overBudget ? '#ff4444' : usagePct > 80 ? '#ffaa00' : '#00cc66', transition: 'width 0.4s' }} />
+                        </div>
+                        <span style={{ fontSize: '15px', color: overBudget ? '#ff6666' : '#666688', minWidth: 36 }}>{usagePct}%</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <span style={{ color: '#666688', fontSize: '15px', flex: 1 }}>
+                        {data.count} agent{data.count !== 1 ? 's' : ''} · Avg ${Math.round(data.cost/data.count).toLocaleString()}
+                      </span>
+                      <span style={{ color: '#444466', fontSize: '14px' }}>Budget $</span>
+                      <input
+                        type="number"
+                        placeholder="no cap"
+                        value={budget || ''}
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10);
+                          onDeptBudgetChange?.(dept, isNaN(v) ? 0 : v);
+                        }}
+                        style={{
+                          width: 80, padding: '2px 6px',
+                          background: '#0a0a14', color: '#ffdd44',
+                          border: `1px solid ${overBudget ? '#ff4444' : '#333366'}`,
+                          fontFamily: 'monospace', fontSize: '15px',
+                        }}
+                      />
+                    </div>
+                    {overBudget && (
+                      <div style={{ marginTop: 4, color: '#ff6666', fontSize: '14px', fontFamily: 'monospace' }}>
+                        ⚠ OVER BUDGET by ${Math.round(data.cost - budget).toLocaleString()}!
+                      </div>
+                    )}
                   </div>
-                  <div style={{ color: '#888899', fontSize: '17px', fontWeight: 'bold' }}>
-                    {data.count} Agent{data.count !== 1 ? 's' : ''} | Avg: ${Math.round(data.cost/data.count).toLocaleString()}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
