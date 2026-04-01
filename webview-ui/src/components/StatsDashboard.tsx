@@ -16,6 +16,14 @@ export const ROLE_SALARY: Record<string, number> = {
   Intern:     1500,
 };
 
+// Exchange rates to USD
+const FX_RATES: Record<string, number> = {
+  USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90,
+};
+function toUSD(salary: number, currency: string) {
+  return salary / (FX_RATES[currency] ?? 1);
+}
+
 const DEPT_COLORS: Record<string, string> = {
   Engineering: '#00ff88',
   Design:      '#ff88cc',
@@ -43,6 +51,8 @@ interface HiredAgent {
   hireDate: string;
   zone?: string;
   salary?: number;
+  currency?: string;
+  country?: string;
   performance?: number;
   level?: number;
 }
@@ -55,7 +65,8 @@ interface Props {
   onFire: (id: string) => void;
   activeEvent?: OfficeEvent | null;
   eventLog?: OfficeEvent[];
-  onTriggerEvent?: () => void;
+  onTriggerEvent?: (type?: string) => void;
+  eventTemplates?: Array<{ type: string; title: string; icon: string; color: string; desc: string; duration: number }>;
 }
 
 const FLOOR_CAPACITY = 10;
@@ -92,8 +103,9 @@ function PixelProgressBar({ value, max, color }: { value: number; max: number; c
   );
 }
 
-export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent }: Props) {
+export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [] }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings' | 'events'>('overview');
+  const [selectedEventType, setSelectedEventType] = useState<string>('random');
   const [, setTick] = useState(0);
 
   // Live update every 5s
@@ -104,7 +116,7 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
 
   // ─── CALCULATIONS ────────────────────────────────────────────────────────
   const totalAgents = agents.length;
-  const monthlyCost = agents.reduce((sum, a) => sum + (a.salary ?? ROLE_SALARY[a.role] ?? 4000), 0);
+  const monthlyCost = agents.reduce((sum, a) => sum + toUSD(a.salary ?? ROLE_SALARY[a.role] ?? 4000, a.currency ?? 'USD'), 0);
   const avgSalary = totalAgents > 0 ? Math.round(monthlyCost / totalAgents) : 0;
 
   const productivity = totalAgents === 0 ? 0 : Math.round(
@@ -127,7 +139,7 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
   for (const a of agents) {
     if (!deptMap[a.dept]) deptMap[a.dept] = { count: 0, cost: 0 };
     deptMap[a.dept].count += 1;
-    deptMap[a.dept].cost += (a.salary ?? ROLE_SALARY[a.role] ?? 4000);
+    deptMap[a.dept].cost += toUSD(a.salary ?? ROLE_SALARY[a.role] ?? 4000, a.currency ?? 'USD');
   }
   const depts = Object.entries(deptMap).sort((x, y) => y[1].count - x[1].count);
   const deptsByCost = Object.entries(deptMap).sort((x, y) => y[1].cost - x[1].cost);
@@ -386,10 +398,37 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
               {activeEvent ? `⚡ ${activeEvent.title} IN PROGRESS` : '📅 OFFICE EVENTS'}
             </div>
 
-            {/* Manual trigger button */}
-            <div style={{ padding: '10px 12px', borderBottom: '1px solid #333344' }}>
+            {/* Manual trigger: type selector + button */}
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #333344', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Event type picker */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setSelectedEventType('random')}
+                  style={{
+                    padding: '4px 10px', fontFamily: 'monospace', fontSize: '16px',
+                    background: selectedEventType === 'random' ? '#223322' : '#111122',
+                    color: selectedEventType === 'random' ? '#aaffcc' : '#557755',
+                    border: `2px solid ${selectedEventType === 'random' ? '#00ff88' : '#333344'}`,
+                    cursor: 'pointer',
+                  }}
+                >🎲 Random</button>
+                {eventTemplates.map(tmpl => (
+                  <button
+                    key={tmpl.type}
+                    onClick={() => setSelectedEventType(tmpl.type)}
+                    style={{
+                      padding: '4px 10px', fontFamily: 'monospace', fontSize: '16px',
+                      background: selectedEventType === tmpl.type ? '#1a1122' : '#111122',
+                      color: selectedEventType === tmpl.type ? tmpl.color : '#666677',
+                      border: `2px solid ${selectedEventType === tmpl.type ? tmpl.color : '#333344'}`,
+                      cursor: 'pointer',
+                    }}
+                  >{tmpl.icon} {tmpl.title.split(' ')[0]}</button>
+                ))}
+              </div>
+              {/* Trigger button */}
               <button
-                onClick={onTriggerEvent}
+                onClick={() => onTriggerEvent?.(selectedEventType === 'random' ? undefined : selectedEventType)}
                 disabled={!!activeEvent}
                 style={{
                   width: '100%', padding: '8px', fontFamily: 'monospace',
@@ -401,7 +440,7 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
                   letterSpacing: 1,
                 }}
               >
-                {activeEvent ? `⏳ EVENT RUNNING... (${activeEvent.icon})` : '▶ TRIGGER OFFICE EVENT'}
+                {activeEvent ? `⏳ EVENT RUNNING... (${activeEvent.icon})` : `▶ TRIGGER ${selectedEventType === 'random' ? 'RANDOM' : (eventTemplates.find(t => t.type === selectedEventType)?.title ?? 'EVENT')}`}
               </button>
             </div>
 

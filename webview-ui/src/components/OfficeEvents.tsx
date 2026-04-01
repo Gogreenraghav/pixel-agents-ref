@@ -102,11 +102,13 @@ export function useOfficeEvents({ agents, onEventStart, onEventEnd, onAgentStatu
   const [activeEvent, setActiveEvent] = useState<OfficeEvent | null>(null);
   const [lastEventTime, setLastEventTime] = useState(Date.now());
 
-  const triggerEvent = useCallback(() => {
+  const triggerEvent = useCallback((forceType?: string) => {
     if (activeEvent) return; // Already running
     if (agents.length === 0) return;
 
-    const tmpl = pickEvent(agents);
+    const tmpl = forceType
+      ? (EVENT_TEMPLATES.find(t => t.type === forceType) ?? pickEvent(agents))
+      : pickEvent(agents);
     if (!tmpl) return;
 
     const event: OfficeEvent = {
@@ -169,7 +171,7 @@ export function useOfficeEvents({ agents, onEventStart, onEventEnd, onAgentStatu
     return () => clearInterval(t);
   }, [activeEvent, lastEventTime, triggerEvent]);
 
-  return { activeEvent, triggerEvent };
+  return { activeEvent, triggerEvent, EVENT_TEMPLATES };
 }
 
 // ── Event Notification Banner ────────────────────────────────────────────────
