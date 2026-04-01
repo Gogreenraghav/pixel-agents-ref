@@ -511,17 +511,25 @@ function App() {
     return now.getHours() + now.getMinutes() / 60;
   });
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [clockAuto, setClockAuto] = useState(true);        // auto-advance clock
+  const [clockSpeed, setClockSpeed] = useState(1);          // 1=real, 2=2x, 5=5x, 10=10x
+  // Per-agent schedules: agentId -> DaySchedule (overrides global if set)
+  const LS_AGENT_SCHED_KEY = 'pixeloffice_agent_schedules';
+  const [agentSchedules, setAgentSchedules] = useState<Record<string, DaySchedule>>(() => {
+    try { const s = localStorage.getItem(LS_AGENT_SCHED_KEY); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
 
-  // Auto-advance office clock (1 real second = 1 min office time)
+  // Auto-advance office clock: 1 real second = clockSpeed office minutes
   useEffect(() => {
+    if (!clockAuto) return;
     const t = setInterval(() => {
       setOfficeHour(prev => {
-        const next = prev + 1/60;
+        const next = prev + clockSpeed / 60;
         return next >= 24 ? 0 : next;
       });
     }, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [clockAuto, clockSpeed]);
 
   // Revenue: each working agent generates $200-$400/day (~$6k-$12k/mo)
   // Deduct payroll each "tick" (every 60s = simulated day)
@@ -715,18 +723,19 @@ function App() {
     return sum + 50 * 30;
   }, 0);
 
-  // Enforce schedule: update agent status/zone based on current time slot
+  // Enforce schedule: per-agent or global, every 30 office-minutes
   useEffect(() => {
-    const slot = getCurrentSlot(schedule, officeHour);
-    const { status, zone } = slotToAgentState(slot);
-    if (!activeEvent) {
-      hiredAgentsStore.forEach(a => {
-        if (a.status !== status || a.zone !== zone) {
-          handleAgentStatusChange(a.id, status, zone);
-        }
-      });
-    }
-  }, [Math.floor(officeHour * 2), schedule, activeEvent]); // fire every 30 office-min
+    if (activeEvent) return; // Office event overrides schedule
+    hiredAgentsStore.forEach(a => {
+      const agentSched = agentSchedules[a.id];
+      const activeSched = agentSched && agentSched.length > 0 ? agentSched : schedule;
+      const slot = getCurrentSlot(activeSched, officeHour);
+      const { status, zone } = slotToAgentState(slot);
+      if (a.status !== status || a.zone !== zone) {
+        handleAgentStatusChange(a.id, status, zone);
+      }
+    });
+  }, [Math.floor(officeHour * 2), schedule, agentSchedules, activeEvent]);
 
   // Performance drift + tasks completed every 30s
   useEffect(() => {
@@ -944,8 +953,21 @@ function App() {
             onClose={() => setScheduleOpen(false)}
             officeHour={officeHour}
             onOfficeHourChange={h => setOfficeHour(h)}
+            clockAuto={clockAuto}
+            onClockAutoChange={setClockAuto}
+            clockSpeed={clockSpeed}
+            onClockSpeedChange={setClockSpeed}
             schedule={schedule}
             onScheduleChange={s => { setSchedule(s); try { localStorage.setItem('pixeloffice_schedule', JSON.stringify(s)); } catch {} }}
+            agents={hiredAgents}
+            agentSchedules={agentSchedules}
+            onAgentScheduleChange={(agentId, s) => {
+              setAgentSchedules(prev => {
+                const next = { ...prev, [agentId]: s };
+                try { localStorage.setItem(LS_AGENT_SCHED_KEY, JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }}
           />
         </div>
       )}
