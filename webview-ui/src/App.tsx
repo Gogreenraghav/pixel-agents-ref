@@ -44,6 +44,8 @@ interface HiredAgent {
   zone?: string;
   pixelCharId?: number;
   salary: number;
+  currency: string;
+  country: string;
   performance: number;  // 0-100
   level: number;        // 1=Junior, 2=Mid, 3=Senior, 4=Lead
   tasksCompleted: number;
@@ -174,6 +176,13 @@ function AgentListPanel({ agents, onSelect, selectedId }: {
 }
 
 // ── Agent Detail Panel ───────────────────────────────────────────────────────
+const FLAGS: Record<string, string> = {
+  Global: '🌍', India: '🇮🇳', USA: '🇺🇸', UK: '🇬🇧', Europe: '🇪🇺', Japan: '🇯🇵', Russia: '🇷🇺'
+};
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', INR: '₹', GBP: '£', EUR: '€', JPY: '¥', RUB: '₽',
+};
+
 const LEVEL_NAMES = ['Junior', 'Mid', 'Senior', 'Lead', 'Principal'];
 
 function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
@@ -215,13 +224,16 @@ function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Level: </span>
           <span style={{ color: '#ffdd44' }}>{levelName}</span>
           <span style={{ color: '#444', fontSize: 15 }}> (L{agent.level ?? 1})</span></div>
+        <div><span style={{ color: 'var(--pixel-text-dim)' }}>Location: </span>
+          <span>{FLAGS[agent.country ?? 'Global'] ?? '🌍'} {agent.country ?? 'Global'}</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Dept: </span>
           <span>{agent.dept}</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Status: </span>
           <span style={{ color: agent.status === 'Working' ? '#00ff88' : agent.status === 'In Meeting' ? '#ffd700' : agent.status === 'On Break' ? '#ff9966' : '#aaaaaa' }}>
             {agent.status}</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Salary: </span>
-          <span style={{ color: '#ffdd44' }}>${(agent.salary ?? 4000).toLocaleString()}/mo</span></div>
+          <span style={{ color: '#ffdd44' }}>{CURRENCY_SYMBOLS[agent.currency ?? 'USD'] ?? '$'}{(agent.salary ?? 4000).toLocaleString()}/mo</span>
+          <span style={{ color: '#666', fontSize: 14 }}> ({agent.currency ?? 'USD'})</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Tasks: </span>
           <span style={{ color: '#aaccff' }}>{agent.tasksCompleted ?? 0}</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Hired: </span>
@@ -290,6 +302,8 @@ if (typeof window !== 'undefined') {
       status: 'Working',
       hireDate: new Date().toLocaleDateString(),
       salary: ROLE_SALARY[role] ?? 4000,
+      currency: 'USD',
+      country: 'Global',
       performance: 60 + Math.floor(Math.random() * 25),
       level: 1,
       tasksCompleted: 0,
@@ -512,7 +526,7 @@ function App() {
   }, [currentFloor, loadFloorFile]);
   const selectedHiredAgent = hiredAgents.find(a => a.id === selectedHiredId) ?? null;
 
-  const handleHireAgent = useCallback((name: string, role: string, dept: string) => {
+  const handleHireAgent = useCallback((name: string, role: string, dept: string, salary: number, currency: string, country: string) => {
     // Dispatch to Pixel Agents engine — use a numeric-friendly id
     const numericId = Date.now();
     const agentId = `hired_${numericId}`;
@@ -533,8 +547,10 @@ function App() {
       zone: 'workspace',
       hireDate: new Date().toLocaleDateString(),
       pixelCharId: numericId,
-      salary: ROLE_SALARY[role] ?? 4000,
-      performance: 60 + Math.floor(Math.random() * 25), // 60-85 starting perf
+      salary,
+      currency,
+      country,
+      performance: 60 + Math.floor(Math.random() * 25),
       level: 1,
       tasksCompleted: 0,
     });

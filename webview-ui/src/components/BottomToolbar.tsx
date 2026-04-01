@@ -5,7 +5,7 @@ import { vscode } from '../vscodeApi.js';
 import { SettingsModal } from './SettingsModal.js';
 
 interface BottomToolbarProps {
-  onHireAgent?: (name: string, role: string, dept: string) => void;
+  onHireAgent?: (name: string, role: string, dept: string, salary: number, currency: string, country: string) => void;
   currentFloor?: number;
   onFloorChange?: (floor: number) => void;
   onStatsClick?: () => void;
@@ -53,226 +53,144 @@ const btnActive: React.CSSProperties = {
 };
 
 // ── Hire Dialog styles ─────────────────────────────────────────────────────
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.6)',
-  zIndex: 9999,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const dialogStyle: React.CSSProperties = {
-  background: 'var(--pixel-bg)',
-  border: '2px solid var(--pixel-border)',
-  borderRadius: 0,
-  boxShadow: 'var(--pixel-shadow)',
-  minWidth: 280,
-  fontFamily: 'inherit',
-};
-
-const dialogTitleStyle: React.CSSProperties = {
-  background: 'var(--pixel-active-bg)',
-  borderBottom: '2px solid var(--pixel-border)',
-  padding: '8px 12px',
-  fontSize: '22px',
-  color: 'var(--pixel-text)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const dialogBodyStyle: React.CSSProperties = {
-  padding: '16px',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '18px',
-  color: 'var(--pixel-text)',
-  marginBottom: '6px',
-};
 
 
-const dialogBtnsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  marginTop: 8,
-};
 
-const DEFAULT_ROLES = ['CEO', 'CTO', 'Manager', 'Developer', 'Designer', 'QA', 'Sales Manager', 'Advocate', 'HR Manager', 'DevOps', 'Data Analyst', 'Product Manager'];
-const DEFAULT_DEPTS = ['Engineering', 'Design', 'QA', 'Management', 'Marketing', 'Operations', 'Sales', 'HR', 'Data', 'Product'];
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ── HireDialog component ───────────────────────────────────────────────────
-function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: string, role: string, dept: string) => void }) {
+const COUNTRIES = [
+  { name: 'Global', flag: '🌍', cur: 'USD', sym: '$' },
+  { name: 'India', flag: '🇮🇳', cur: 'INR', sym: '₹' },
+  { name: 'USA', flag: '🇺🇸', cur: 'USD', sym: '$' },
+  { name: 'UK', flag: '🇬🇧', cur: 'GBP', sym: '£' },
+  { name: 'Europe', flag: '🇪🇺', cur: 'EUR', sym: '€' },
+  { name: 'Japan', flag: '🇯🇵', cur: 'JPY', sym: '¥' },
+  { name: 'Russia', flag: '🇷🇺', cur: 'RUB', sym: '₽' },
+];
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', INR: '₹', GBP: '£', EUR: '€', JPY: '¥', RUB: '₽',
+};
+
+// Base USD monthly salaries
+const ROLE_SALARY: Record<string, number> = {
+  CEO: 12000, CTO: 10000, Manager: 6000, Developer: 5000, Designer: 4500, QA: 4000,
+  HR: 4000, Marketing: 4500, Sales: 4000, Analyst: 4500, DevOps: 5500, Intern: 1500,
+};
+
+// Conversion rates to USD (approx)
+const FX_RATES: Record<string, number> = {
+  USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90,
+};
+
+function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: string, role: string, dept: string, salary: number, currency: string, country: string) => void }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('Developer');
   const [dept, setDept] = useState('Engineering');
-  const [customRole, setCustomRole] = useState('');
-  const [showCustomRole, setShowCustomRole] = useState(false);
+  const [country, setCountry] = useState('Global');
+  const [currency, setCurrency] = useState('USD');
+  const [salaryStr, setSalaryStr] = useState(String(ROLE_SALARY['Developer']));
   const [hovered, setHovered] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    const baseUsd = ROLE_SALARY[role] ?? 4000;
+    const rate = FX_RATES[currency] ?? 1;
+    setSalaryStr(String(Math.round(baseUsd * rate)));
+  }, [role, currency]);
 
-  const finalRole = showCustomRole ? customRole.trim() || 'Custom' : role;
+  useEffect(() => {
+    const c = COUNTRIES.find(x => x.name === country);
+    if (c) setCurrency(c.cur);
+  }, [country]);
 
   const handleHire = () => {
-    const finalName = name.trim() || `Agent_${Date.now().toString(36).slice(-4).toUpperCase()}`;
-    onHire(finalName, finalRole, dept);
+    const finalName = name.trim() || `Agent ${Math.floor(Math.random() * 1000)}`;
+    const finalSalary = parseInt(salaryStr, 10) || 0;
+    onHire(finalName, role, dept, finalSalary, currency, country);
     onClose();
   };
 
-  const fieldBg = '#1a1a3a';
-  const fieldBorder = 'var(--pixel-border)';
-  const fieldColor = 'var(--pixel-text)';
-
-  const fieldStyle: React.CSSProperties = {
-    width: '100%',
-    background: fieldBg,
-    border: `2px solid ${fieldBorder}`,
-    borderRadius: 0,
-    color: fieldColor,
-    fontSize: '21px',
-    padding: '6px 8px',
-    fontFamily: 'inherit',
-    outline: 'none',
-    marginBottom: '10px',
-    boxSizing: 'border-box',
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '6px', background: 'var(--pixel-bg)', color: 'var(--pixel-text)',
+    border: '2px solid var(--pixel-border)', fontFamily: 'monospace', fontSize: '18px', boxSizing: 'border-box',
   };
 
   return (
-    <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ ...dialogStyle, minWidth: 300 }}>
-        <div style={dialogTitleStyle}>
-          <span>👤 Hire Agent</span>
-          <button onClick={onClose} style={{ ...btnBase, padding: '2px 8px', fontSize: '18px' }}>✕</button>
+    <div style={{
+      position: 'absolute', bottom: '100%', left: 0, marginBottom: 8,
+      background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)',
+      boxShadow: 'var(--pixel-shadow)', width: 360, zIndex: 'var(--pixel-controls-z)',
+      display: 'flex', flexDirection: 'column', fontFamily: 'monospace',
+    }}>
+      <div style={{
+        background: 'var(--pixel-active-bg)', borderBottom: '2px solid var(--pixel-agent-border)',
+        padding: '6px 10px', fontSize: '20px', color: 'var(--pixel-agent-text)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <span>👤 Hire Agent</span>
+        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--pixel-text)', fontSize: '20px', cursor: 'pointer', padding: '0 4px' }}>✕</button>
+      </div>
+
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Name</label>
+          <input autoFocus type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Agent Name..." style={inputStyle} onKeyDown={e => { if (e.key === 'Enter') handleHire(); if (e.key === 'Escape') onClose(); }} />
         </div>
-        <div style={dialogBodyStyle}>
 
-          {/* Name */}
-          <label style={labelStyle}>Agent Name</label>
-          <input
-            ref={inputRef}
-            style={fieldStyle}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Enter agent name..."
-            onKeyDown={e => { if (e.key === 'Enter') handleHire(); if (e.key === 'Escape') onClose(); }}
-          />
-
-          {/* Role */}
-          <label style={labelStyle}>Role</label>
-          {!showCustomRole ? (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              <select
-                style={{ ...fieldStyle, marginBottom: 0, flex: 1 }}
-                value={role}
-                onChange={e => setRole(e.target.value)}
-              >
-                {DEFAULT_ROLES.map(r => (
-                  <option key={r} value={r} style={{ background: '#1a1a3a', color: '#fff' }}>{r}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowCustomRole(true)}
-                title="Add custom role"
-                style={{
-                  ...btnBase,
-                  padding: '4px 10px',
-                  fontSize: '20px',
-                  border: '2px solid var(--pixel-border)',
-                  color: 'var(--pixel-text)',
-                  flexShrink: 0,
-                }}
-              >+ New</button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              <input
-                style={{ ...fieldStyle, marginBottom: 0, flex: 1 }}
-                value={customRole}
-                onChange={e => setCustomRole(e.target.value)}
-                placeholder="Type custom role..."
-                autoFocus
-              />
-              <button
-                onClick={() => setShowCustomRole(false)}
-                title="Use existing roles"
-                style={{
-                  ...btnBase,
-                  padding: '4px 10px',
-                  fontSize: '20px',
-                  border: '2px solid var(--pixel-border)',
-                  color: 'var(--pixel-text)',
-                  flexShrink: 0,
-                }}
-              >List</button>
-            </div>
-          )}
-
-          {/* Department */}
-          <label style={labelStyle}>Department</label>
-          <select
-            style={fieldStyle}
-            value={dept}
-            onChange={e => setDept(e.target.value)}
-          >
-            {DEFAULT_DEPTS.map(d => (
-              <option key={d} value={d} style={{ background: '#1a1a3a', color: '#fff' }}>{d}</option>
-            ))}
-          </select>
-
-          {/* Preview */}
-          <div style={{
-            background: '#0d0d2a',
-            border: '2px solid var(--pixel-border)',
-            padding: '6px 10px',
-            marginBottom: 10,
-            fontSize: '19px',
-            color: 'var(--pixel-text-dim)',
-          }}>
-            <span style={{ color: 'var(--pixel-text)' }}>{name.trim() || '(name)'}</span>
-            {' · '}
-            <span style={{ color: 'var(--pixel-agent-text)' }}>{finalRole}</span>
-            {' · '}
-            <span style={{ color: 'var(--pixel-text-dim)' }}>{dept}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Role</label>
+            <select value={role} onChange={e => setRole(e.target.value)} style={inputStyle}>
+              {Object.keys(ROLE_SALARY).map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
           </div>
-
-          <div style={dialogBtnsStyle}>
-            <button
-              onClick={handleHire}
-              onMouseEnter={() => setHovered('hire')}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                ...btnBase,
-                flex: 1,
-                background: hovered === 'hire' ? 'var(--pixel-agent-hover-bg)' : 'var(--pixel-agent-bg)',
-                border: '2px solid var(--pixel-agent-border)',
-                color: 'var(--pixel-agent-text)',
-                fontSize: '20px',
-              }}
-            >
-              ✓ Hire
-            </button>
-            <button
-              onClick={onClose}
-              onMouseEnter={() => setHovered('cancel')}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                ...btnBase,
-                flex: 1,
-                background: hovered === 'cancel' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
-                fontSize: '20px',
-              }}
-            >
-              ✕ Cancel
-            </button>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Dept</label>
+            <select value={dept} onChange={e => setDept(e.target.value)} style={inputStyle}>
+              {['Engineering', 'Design', 'Management', 'QA', 'Marketing', 'Sales', 'HR', 'Operations'].map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
           </div>
         </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Location</label>
+            <select value={country} onChange={e => setCountry(e.target.value)} style={inputStyle}>
+              {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+            </select>
+          </div>
+          <div style={{ width: 80 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Curr</label>
+            <select value={currency} onChange={e => setCurrency(e.target.value)} style={inputStyle}>
+              {Object.keys(CURRENCY_SYMBOLS).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Monthly Salary ({CURRENCY_SYMBOLS[currency] ?? currency})</label>
+          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--pixel-bg)', border: '2px solid var(--pixel-border)' }}>
+            <span style={{ padding: '0 8px', color: '#aaccff', fontSize: '18px' }}>{CURRENCY_SYMBOLS[currency] ?? '$'}</span>
+            <input type="number" value={salaryStr} onChange={e => setSalaryStr(e.target.value)} style={{ ...inputStyle, border: 'none', flex: 1 }} onKeyDown={e => { if (e.key === 'Enter') handleHire(); if (e.key === 'Escape') onClose(); }} />
+          </div>
+        </div>
+
+        <button onClick={handleHire} onMouseEnter={() => setHovered('hire')} onMouseLeave={() => setHovered(null)} style={{
+          marginTop: 4, padding: '8px', fontSize: '20px', background: hovered === 'hire' ? 'var(--pixel-agent-hover-bg)' : 'var(--pixel-agent-bg)',
+          color: 'var(--pixel-agent-text)', border: '2px solid var(--pixel-agent-border)', cursor: 'pointer', fontFamily: 'monospace',
+        }}>✓ Hire Agent</button>
       </div>
     </div>
   );
@@ -353,18 +271,13 @@ export function BottomToolbar({
     }
   };
 
-  const handleHire = (name: string, role: string, dept: string) => {
-    if (onHireAgent) onHireAgent(name, role, dept);
+  const handleHire = (name: string, role: string, dept: string, salary: number, currency: string, country: string) => {
+    onHireAgent?.(name, role, dept, salary, currency, country);
+    setIsHireOpen(false);
   };
 
   return (
     <>
-      {isHireOpen && (
-        <HireDialog
-          onClose={() => setIsHireOpen(false)}
-          onHire={handleHire}
-        />
-      )}
       <div style={panelStyle}>
         <div ref={folderPickerRef} style={{ position: 'relative' }}>
           <button
@@ -486,24 +399,34 @@ export function BottomToolbar({
         </div>
 
         {/* HIRE AGENT button */}
-        <button
-          onClick={() => setIsHireOpen(true)}
-          onMouseEnter={() => setHovered('hire')}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            ...btnBase,
-            padding: '5px 12px',
-            background:
-              hovered === 'hire'
-                ? 'var(--pixel-agent-hover-bg)'
-                : 'var(--pixel-agent-bg)',
-            border: '2px solid var(--pixel-agent-border)',
-            color: 'var(--pixel-agent-text)',
-          }}
-          title="Hire a new agent with a role"
-        >
-          👤 Hire
-        </button>
+        <div style={{ position: 'relative' }}>
+          {isHireOpen && (
+            <HireDialog
+              onClose={() => setIsHireOpen(false)}
+              onHire={handleHire}
+            />
+          )}
+          <button
+            onClick={() => setIsHireOpen((v) => !v)}
+            onMouseEnter={() => setHovered('hire')}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              ...btnBase,
+              padding: '5px 12px',
+              background:
+                isHireOpen
+                  ? 'var(--pixel-active-bg)'
+                  : hovered === 'hire'
+                  ? 'var(--pixel-agent-hover-bg)'
+                  : 'var(--pixel-agent-bg)',
+              border: '2px solid var(--pixel-agent-border)',
+              color: 'var(--pixel-agent-text)',
+            }}
+            title="Hire a new agent with a role"
+          >
+            👤 Hire
+          </button>
+        </div>
 
         {/* STATS button */}
         <button
