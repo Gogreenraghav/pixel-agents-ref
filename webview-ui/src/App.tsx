@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
+import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
+import type { OfficeEvent } from './components/OfficeEvents.js';
 import { DebugView } from './components/DebugView.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import { PULSE_ANIMATION_DURATION_SEC } from './constants.js';
@@ -427,6 +429,8 @@ function App() {
   const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [eventLog, setEventLog] = useState<OfficeEvent[]>([]);
+  const [dismissedEvent, setDismissedEvent] = useState(false);
 
   // ── Washroom occupancy ────────────────────────────────────────
   const [washroomOccupied, setWashroomOccupied] = useState(false);
@@ -536,6 +540,10 @@ function App() {
     });
   }, []);
 
+  const handleAgentStatusChange = useCallback((id: string, status: string, zone: string) => {
+    updateHiredAgent(id, { status, zone });
+  }, []);
+
   const handlePromoteAgent = useCallback((id: string) => {
     const agent = hiredAgentsStore.find(a => a.id === id);
     if (!agent || (agent.level ?? 1) >= 5) return;
@@ -551,6 +559,17 @@ function App() {
     const cut = Math.round((agent.salary ?? 4000) * 0.10);
     updateHiredAgent(id, { level: newLevel, salary: Math.max(1500, (agent.salary ?? 4000) - cut) });
   }, []);
+
+  // ── Office Events ────────────────────────────────────────────────────────────
+  const { activeEvent, triggerEvent } = useOfficeEvents({
+    agents: hiredAgents,
+    onEventStart: (evt) => {
+      setEventLog(prev => [evt, ...prev.slice(0, 9)]);
+      setDismissedEvent(false);
+    },
+    onEventEnd: (_evt) => { /* already handled in hook */ },
+    onAgentStatusChange: handleAgentStatusChange,
+  });
 
   // Performance drift + tasks completed every 30s
   useEffect(() => {
@@ -730,7 +749,12 @@ function App() {
         />
       )}
 
-      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} />}
+      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} />}
+
+      {/* Office Event Banner */}
+      {!isEmbedMode && !dismissedEvent && (
+        <EventBanner event={activeEvent} onDismiss={() => setDismissedEvent(true)} />
+      )}
       {!isEmbedMode && <BottomToolbar
         isEditMode={editor.isEditMode}
         onOpenClaude={editor.handleOpenClaude}

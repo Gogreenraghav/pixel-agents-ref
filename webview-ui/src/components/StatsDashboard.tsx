@@ -1,3 +1,4 @@
+import type { OfficeEvent } from './OfficeEvents.js';
 import { useState, useEffect } from 'react';
 
 export const ROLE_SALARY: Record<string, number> = {
@@ -52,6 +53,9 @@ interface Props {
   onClose: () => void;
   onPromote: (id: string) => void;
   onFire: (id: string) => void;
+  activeEvent?: OfficeEvent | null;
+  eventLog?: OfficeEvent[];
+  onTriggerEvent?: () => void;
 }
 
 const FLOOR_CAPACITY = 10;
@@ -88,8 +92,8 @@ function PixelProgressBar({ value, max, color }: { value: number; max: number; c
   );
 }
 
-export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire }: Props) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings'>('overview');
+export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent }: Props) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings' | 'events'>('overview');
   const [, setTick] = useState(0);
 
   // Live update every 5s
@@ -227,10 +231,11 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
         <button onClick={() => setActiveTab('overview')} style={tabBtnStyle(activeTab === 'overview')}>OVERVIEW</button>
         <button onClick={() => setActiveTab('payroll')} style={tabBtnStyle(activeTab === 'payroll')}>PAYROLL</button>
         <button onClick={() => setActiveTab('rankings')} style={tabBtnStyle(activeTab === 'rankings')}>RANKINGS</button>
+        <button onClick={() => setActiveTab('events')} style={tabBtnStyle(activeTab === 'events')}>EVENTS</button>
       </div>
 
       {/* Content Area */}
-      <div style={{ paddingBottom: 12, minHeight: 300, background: 'var(--pixel-active-bg)', overflowY: 'auto' }}>
+      <div style={{ paddingBottom: 12, minHeight: 300, maxHeight: '55vh', background: 'var(--pixel-active-bg)', overflowY: 'auto', overflowX: 'hidden' }}>
         
         {/* ================== OVERVIEW TAB ================== */}
         {activeTab === 'overview' && (
@@ -248,6 +253,18 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
               <PixelProgressBar value={productivity} max={100} color={prodColor} />
             </div>
 
+            {totalAgents === 0 && (
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                fontFamily: 'monospace', fontSize: '18px',
+                border: '1px dashed #333344', margin: '12px',
+                color: '#446688', background: '#111122',
+              }}>
+                <div style={{ fontSize: '28px', marginBottom: 8 }}>🏢</div>
+                <div style={{ color: '#88aaff' }}>OFFICE IS EMPTY</div>
+                <div style={{ color: '#446688', fontSize: '16px', marginTop: 6 }}>Click [👤 Hire] to add your first agent</div>
+              </div>
+            )}
             <div style={sectionHead}>Agent Status</div>
             {Object.entries(STATUS_COLORS).map(([status, color]) => {
               const count = statusMap[status] ?? 0;
@@ -291,7 +308,16 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
 
             <div style={sectionHead}>Department Breakdown</div>
             {deptsByCost.length === 0 ? (
-              <div style={{ padding: '12px', color: '#666', textAlign: 'center' }}>No active departments.</div>
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                fontFamily: 'monospace', fontSize: '18px',
+                border: '1px dashed #333344', margin: '12px',
+                color: '#446644', background: '#111a11',
+              }}>
+                <div style={{ fontSize: '24px', marginBottom: 8 }}>[$]</div>
+                <div style={{ color: '#aaffcc' }}>NO DEPARTMENTS YET</div>
+                <div style={{ color: '#446644', fontSize: '16px', marginTop: 6 }}>Hire agents to see payroll data</div>
+              </div>
             ) : (
               deptsByCost.map(([dept, data]) => (
                 <div key={dept} style={{ padding: '6px 12px', borderBottom: '1px dashed #333344' }}>
@@ -319,7 +345,16 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
               🏆 Top Performers
             </div>
             {top3.length === 0 ? (
-              <div style={{ padding: '12px', color: '#666', textAlign: 'center' }}>No agents hired yet.</div>
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                fontFamily: 'monospace', fontSize: '18px',
+                border: '1px dashed #224422', margin: '12px',
+                color: '#446644', background: '#111a11',
+              }}>
+                <div style={{ fontSize: '24px', marginBottom: 8 }}>🏆</div>
+                <div style={{ color: '#aaffcc' }}>NO RANKINGS YET</div>
+                <div style={{ color: '#446644', fontSize: '16px', marginTop: 6 }}>Hire agents to see leaderboard</div>
+              </div>
             ) : (
               top3.map(a => <RankRow key={a.id} agent={a} action="promote" />)
             )}
@@ -328,9 +363,92 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
               ⚠️ Bottom Performers
             </div>
             {bottom3.length === 0 ? (
-              <div style={{ padding: '12px', color: '#666', textAlign: 'center' }}>No underperformers.</div>
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                fontFamily: 'monospace', fontSize: '18px',
+                border: '1px dashed #442222', margin: '12px',
+                color: '#664444', background: '#1a1111',
+              }}>
+                <div style={{ fontSize: '24px', marginBottom: 8 }}>✅</div>
+                <div style={{ color: '#ffaaaa' }}>ALL AGENTS PERFORMING WELL</div>
+                <div style={{ color: '#664444', fontSize: '16px', marginTop: 6 }}>No underperformers detected</div>
+              </div>
             ) : (
               bottom3.map(a => <RankRow key={a.id} agent={a} action="fire" />)
+            )}
+          </div>
+        )}
+
+        {/* ================== EVENTS TAB ================== */}
+        {activeTab === 'events' && (
+          <div>
+            <div style={{ ...sectionHead, marginTop: 0, borderTop: 'none', background: activeEvent ? '#1a1122' : '#111122', color: activeEvent ? '#cc88ff' : '#ffffff' }}>
+              {activeEvent ? `⚡ ${activeEvent.title} IN PROGRESS` : '📅 OFFICE EVENTS'}
+            </div>
+
+            {/* Manual trigger button */}
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #333344' }}>
+              <button
+                onClick={onTriggerEvent}
+                disabled={!!activeEvent}
+                style={{
+                  width: '100%', padding: '8px', fontFamily: 'monospace',
+                  fontSize: '18px', fontWeight: 'bold',
+                  background: activeEvent ? '#1a1a1a' : '#112211',
+                  color: activeEvent ? '#444' : '#00ff88',
+                  border: `2px solid ${activeEvent ? '#333' : '#00ff88'}`,
+                  cursor: activeEvent ? 'not-allowed' : 'pointer',
+                  letterSpacing: 1,
+                }}
+              >
+                {activeEvent ? `⏳ EVENT RUNNING... (${activeEvent.icon})` : '▶ TRIGGER OFFICE EVENT'}
+              </button>
+            </div>
+
+            {/* Active event status */}
+            {activeEvent && (
+              <div style={{
+                margin: '10px 12px', padding: '10px',
+                border: `2px solid ${activeEvent.color}`,
+                background: '#111a22',
+              }}>
+                <div style={{ fontSize: '22px', marginBottom: 4 }}>{activeEvent.icon} <span style={{ color: activeEvent.color, fontWeight: 'bold' }}>{activeEvent.title}</span></div>
+                <div style={{ color: '#cccccc', fontSize: '17px' }}>{activeEvent.desc}</div>
+              </div>
+            )}
+
+            {/* Event history */}
+            <div style={{ ...sectionHead }}>Event History</div>
+            {eventLog.length === 0 ? (
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                fontFamily: 'monospace', fontSize: '18px',
+                border: '1px dashed #333344', margin: '12px',
+                color: '#446688', background: '#111122',
+              }}>
+                <div style={{ fontSize: '24px', marginBottom: 8 }}>📅</div>
+                <div style={{ color: '#88aaff' }}>NO EVENTS YET</div>
+                <div style={{ color: '#446688', fontSize: '16px', marginTop: 6 }}>Events trigger automatically every ~3 mins</div>
+              </div>
+            ) : (
+              eventLog.map((evt, i) => (
+                <div key={evt.id} style={{
+                  padding: '8px 12px', borderBottom: '1px dashed #333344',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: i === 0 && activeEvent?.id === evt.id ? '#111a22' : 'transparent',
+                }}>
+                  <span style={{ fontSize: '22px' }}>{evt.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: evt.color, fontWeight: 'bold', fontSize: '17px' }}>{evt.title}</div>
+                    <div style={{ color: '#888', fontSize: '14px' }}>
+                      {i === 0 && activeEvent?.id === evt.id ? '⏱ Running...' : '✓ Completed'}
+                    </div>
+                  </div>
+                  {i === 0 && activeEvent?.id === evt.id && (
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: evt.color }} />
+                  )}
+                </div>
+              ))
             )}
           </div>
         )}
