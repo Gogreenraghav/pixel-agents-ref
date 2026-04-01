@@ -100,9 +100,21 @@ function PixelProgressBar({ value, max, color }: { value: number; max: number; c
 export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [], autoEvents = true, onAutoEventsChange }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings' | 'events'>('overview');
   const [selectedEventType, setSelectedEventType] = useState<string>('random');
-  const [fxRates, setFxRates] = useState<Record<string, number>>({
-    USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90,
+  const DEFAULT_FX_RATES: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
+  const [fxRates, setFxRatesRaw] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('pixeloffice_fx_rates');
+      if (saved) return { ...DEFAULT_FX_RATES, ...JSON.parse(saved) };
+    } catch { /* ignore */ }
+    return DEFAULT_FX_RATES;
   });
+  const setFxRates = (updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => {
+    setFxRatesRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try { localStorage.setItem('pixeloffice_fx_rates', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [, setTick] = useState(0);
 
   // Live update every 5s
@@ -548,7 +560,7 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
                 💡 Example: 1 USD = {fxRates.INR ?? 84} INR &nbsp;|&nbsp; 1 USD = {fxRates.GBP ?? 0.78} GBP
               </div>
               <button
-                onClick={() => setFxRates({ USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 })}
+                onClick={() => { localStorage.removeItem('pixeloffice_fx_rates'); setFxRates({ USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 }); }}
                 style={{
                   marginTop: 12, width: '100%', padding: '7px', fontFamily: 'monospace',
                   fontSize: '16px', background: '#111122', color: '#888899',
