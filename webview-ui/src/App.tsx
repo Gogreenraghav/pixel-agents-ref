@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
+import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
+import type { DaySchedule } from './components/SchedulePanel.js';
 import type { OfficeEvent } from './components/OfficeEvents.js';
 import { DebugView } from './components/DebugView.js';
 import { ZoomControls } from './components/ZoomControls.js';
@@ -492,6 +494,35 @@ function App() {
     try { const s = localStorage.getItem(LS_BUDGET_KEY); return s ? JSON.parse(s) : {}; } catch { return {}; }
   });
 
+  // ── Schedule System ─────────────────────────────────────────────────────
+  const LS_SCHED_KEY = 'pixeloffice_schedule';
+  const DEFAULT_SCHED: DaySchedule = [
+    { startHour: 9,  endHour: 13,  type: 'work' },
+    { startHour: 13, endHour: 14,  type: 'lunch' },
+    { startHour: 14, endHour: 16,  type: 'work' },
+    { startHour: 16, endHour: 16.5, type: 'break' },
+    { startHour: 16.5, endHour: 18, type: 'work' },
+  ];
+  const [schedule, setSchedule] = useState<DaySchedule>(() => {
+    try { const s = localStorage.getItem(LS_SCHED_KEY); return s ? JSON.parse(s) : DEFAULT_SCHED; } catch { return DEFAULT_SCHED; }
+  });
+  const [officeHour, setOfficeHour] = useState<number>(() => {
+    const now = new Date();
+    return now.getHours() + now.getMinutes() / 60;
+  });
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  // Auto-advance office clock (1 real second = 1 min office time)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setOfficeHour(prev => {
+        const next = prev + 1/60;
+        return next >= 24 ? 0 : next;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
   // Revenue: each working agent generates $200-$400/day (~$6k-$12k/mo)
   // Deduct payroll each "tick" (every 60s = simulated day)
   const FX_RATES_DEFAULT: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
@@ -683,6 +714,19 @@ function App() {
     if (a.status === 'In Meeting') return sum + 150 * 30;
     return sum + 50 * 30;
   }, 0);
+
+  // Enforce schedule: update agent status/zone based on current time slot
+  useEffect(() => {
+    const slot = getCurrentSlot(schedule, officeHour);
+    const { status, zone } = slotToAgentState(slot);
+    if (!activeEvent) {
+      hiredAgentsStore.forEach(a => {
+        if (a.status !== status || a.zone !== zone) {
+          handleAgentStatusChange(a.id, status, zone);
+        }
+      });
+    }
+  }, [Math.floor(officeHour * 2), schedule, activeEvent]); // fire every 30 office-min
 
   // Performance drift + tasks completed every 30s
   useEffect(() => {
@@ -893,6 +937,17 @@ function App() {
       {/* Office Event Banner */}
       {!isEmbedMode && !dismissedEvent && (
         <EventBanner event={activeEvent} onDismiss={() => setDismissedEvent(true)} />
+      )}
+      {!isEmbedMode && scheduleOpen && (
+        <div style={{ position: 'absolute', bottom: 48, left: 220, zIndex: 200 }}>
+          <SchedulePanel
+            onClose={() => setScheduleOpen(false)}
+            officeHour={officeHour}
+            onOfficeHourChange={h => setOfficeHour(h)}
+            schedule={schedule}
+            onScheduleChange={s => { setSchedule(s); try { localStorage.setItem('pixeloffice_schedule', JSON.stringify(s)); } catch {} }}
+          />
+        </div>
       )}
       {!isEmbedMode && <BottomToolbar
         isEditMode={editor.isEditMode}

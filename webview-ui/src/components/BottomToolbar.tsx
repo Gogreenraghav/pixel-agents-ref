@@ -10,6 +10,8 @@ interface BottomToolbarProps {
   onFloorChange?: (floor: number) => void;
   onStatsClick?: () => void;
   statsOpen?: boolean;
+  onScheduleClick?: () => void;
+  scheduleOpen?: boolean;
   isEditMode: boolean;
   onOpenClaude: () => void;
   onToggleEditMode: () => void;
@@ -211,6 +213,8 @@ export function BottomToolbar({
   onFloorChange,
   onStatsClick,
   statsOpen,
+  onScheduleClick,
+  scheduleOpen,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -443,6 +447,23 @@ export function BottomToolbar({
           title="View office stats"
         >
           📊 Stats
+        </button>
+
+        {/* SCHEDULE button */}
+        <button
+          onClick={onScheduleClick}
+          onMouseEnter={() => setHovered('schedule')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            padding: '5px 12px',
+            background: scheduleOpen ? 'var(--pixel-active-bg)' : hovered === 'schedule' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+            color: scheduleOpen ? 'var(--pixel-agent-text)' : 'var(--pixel-text-dim)',
+            border: scheduleOpen ? '2px solid var(--pixel-agent-border)' : btnBase.border,
+          }}
+          title="Set work schedule"
+        >
+          🕐 Schedule
         </button>
 
         {/* FLOOR SELECTOR */}
