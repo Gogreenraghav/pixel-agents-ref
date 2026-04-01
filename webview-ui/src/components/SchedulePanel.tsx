@@ -72,12 +72,25 @@ function hourLabel(h: number) {
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
+interface HiredAgentBasic {
+  id: string;
+  name: string;
+  role: string;
+}
+
 interface Props {
   onClose: () => void;
   officeHour: number;
   onOfficeHourChange: (h: number) => void;
+  clockAuto?: boolean;
+  onClockAutoChange?: (v: boolean) => void;
+  clockSpeed?: number;
+  onClockSpeedChange?: (v: number) => void;
   schedule: DaySchedule;
   onScheduleChange: (s: DaySchedule) => void;
+  agents?: HiredAgentBasic[];
+  agentSchedules?: Record<string, DaySchedule>;
+  onAgentScheduleChange?: (agentId: string, s: DaySchedule) => void;
 }
 
 const HOUR_OPTIONS = [
@@ -86,9 +99,13 @@ const HOUR_OPTIONS = [
   17, 17.5, 18, 18.5, 19, 19.5, 20,
 ];
 
-export function SchedulePanel({ onClose, officeHour, onOfficeHourChange, schedule, onScheduleChange }: Props) {
+export function SchedulePanel({ onClose, officeHour, onOfficeHourChange, clockAuto = true, onClockAutoChange, clockSpeed = 1, onClockSpeedChange, schedule, onScheduleChange, agents = [], agentSchedules = {}, onAgentScheduleChange }: Props) {
   const [addMode, setAddMode] = useState(false);
   const [newSlot, setNewSlot] = useState<ScheduleSlot>({ startHour: 9, endHour: 10, type: 'work' });
+  const [activeTab, setActiveTab] = useState<'global' | 'agents' | 'clock'>('global');
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [agentAddMode, setAgentAddMode] = useState(false);
+  const [agentNewSlot, setAgentNewSlot] = useState<ScheduleSlot>({ startHour: 9, endHour: 10, type: 'work' });
 
   const currentSlot = getCurrentSlot(schedule, officeHour);
 
@@ -149,33 +166,65 @@ export function SchedulePanel({ onClose, officeHour, onOfficeHourChange, schedul
         <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--pixel-text)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
       </div>
 
-      {/* Office Clock */}
-      <div style={{ ...sectionHead }}>⏰ OFFICE CLOCK</div>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #222233' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <span style={{ color: '#aaaacc', fontSize: '16px' }}>Current Time:</span>
-          <span style={{ color: '#ffdd44', fontSize: '22px', fontWeight: 'bold' }}>{hourLabel(officeHour)}</span>
-          {currentSlot && (
-            <span style={{ color: SLOT_COLORS[currentSlot.type], fontSize: '18px' }}>
-              {SLOT_ICONS[currentSlot.type]} {SLOT_LABELS[currentSlot.type]}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#666688', fontSize: '15px' }}>Set time:</span>
-          <select
-            value={officeHour}
-            onChange={e => onOfficeHourChange(parseFloat(e.target.value))}
-            style={inputStyle}
-          >
-            {HOUR_OPTIONS.map(h => (
-              <option key={h} value={h}>{hourLabel(h)}</option>
-            ))}
-          </select>
-          <span style={{ color: '#444466', fontSize: '14px' }}>(agents update instantly)</span>
-        </div>
+      {/* Tab bar */}
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--pixel-agent-border)', background: '#0d0d1a', flexShrink: 0 }}>
+        {([['global','🗓 Global'], ['agents','👥 Per-Agent'], ['clock','⏰ Clock']] as const).map(([tab, label]) => (
+          <button key={tab} onClick={() => setActiveTab(tab)} style={{
+            flex: 1, padding: '6px 4px', fontFamily: 'monospace', fontSize: '15px', cursor: 'pointer', border: 'none',
+            borderBottom: activeTab === tab ? '2px solid var(--pixel-agent-border)' : '2px solid transparent',
+            background: activeTab === tab ? 'var(--pixel-active-bg)' : 'transparent',
+            color: activeTab === tab ? 'var(--pixel-agent-text)' : '#555577',
+          }}>{label}</button>
+        ))}
       </div>
 
+      {/* ═══ CLOCK TAB ════════════════════════════════════════════════════════ */}
+      {activeTab === 'clock' && (
+        <div style={{ padding: '12px' }}>
+          <div style={{ ...sectionHead, margin: '0 -12px 10px', padding: '5px 12px' }}>⏰ OFFICE CLOCK</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ color: '#aaaacc', fontSize: '16px' }}>Time:</span>
+            <span style={{ color: '#ffdd44', fontSize: '26px', fontWeight: 'bold' }}>{hourLabel(officeHour)}</span>
+            {currentSlot && <span style={{ color: SLOT_COLORS[currentSlot.type], fontSize: '18px' }}>{SLOT_ICONS[currentSlot.type]} {SLOT_LABELS[currentSlot.type]}</span>}
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ color: '#666688', fontSize: '15px', display: 'block', marginBottom: 6 }}>Set Time Manually:</label>
+            <select value={officeHour} onChange={e => onOfficeHourChange(parseFloat(e.target.value))} style={{ ...inputStyle, width: '100%' }}>
+              {HOUR_OPTIONS.map(h => <option key={h} value={h}>{hourLabel(h)}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '8px 10px', background: '#0a0a14', border: '1px solid #222233' }}>
+            <span style={{ color: '#aaaacc', fontSize: '16px' }}>Auto-Advance Clock</span>
+            <button onClick={() => onClockAutoChange?.(!clockAuto)} style={{
+              padding: '4px 16px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', border: '2px solid',
+              background: clockAuto ? '#112211' : '#221111',
+              color: clockAuto ? '#00ff88' : '#ff4444',
+              borderColor: clockAuto ? '#00ff88' : '#ff4444',
+            }}>{clockAuto ? 'ON' : 'OFF'}</button>
+          </div>
+          {clockAuto && (
+            <div>
+              <label style={{ color: '#666688', fontSize: '15px', display: 'block', marginBottom: 6 }}>Clock Speed:</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[1, 2, 5, 10, 30, 60].map(s => (
+                  <button key={s} onClick={() => onClockSpeedChange?.(s)} style={{
+                    flex: 1, padding: '6px 4px', fontFamily: 'monospace', fontSize: '15px', cursor: 'pointer', border: '2px solid',
+                    background: clockSpeed === s ? '#112211' : '#0a0a14',
+                    color: clockSpeed === s ? '#00ff88' : '#555577',
+                    borderColor: clockSpeed === s ? '#00ff88' : '#333344',
+                  }}>{s === 1 ? '1x' : `${s}x`}</button>
+                ))}
+              </div>
+              <div style={{ color: '#444466', fontSize: '13px', marginTop: 6 }}>
+                {clockSpeed === 1 ? '1 real sec = 1 office min' : `1 real sec = ${clockSpeed} office mins`}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ GLOBAL SCHEDULE TAB ══════════════════════════════════════════════ */}
+      {activeTab === 'global' && <div>
       {/* Timeline bar */}
       <div style={{ ...sectionHead }}>📅 DAY TIMELINE</div>
       <div style={{ padding: '10px 12px', borderBottom: '1px solid #222233' }}>
@@ -277,6 +326,122 @@ export function SchedulePanel({ onClose, officeHour, onOfficeHourChange, schedul
         ))}
         <button onClick={handleReset} style={{ ...btnBase, borderColor: '#444466', color: '#666688', marginLeft: 'auto', fontSize: '13px' }}>↺ Reset</button>
       </div>
+      </div>}
+
+      {/* ═══ PER-AGENT TAB ════════════════════════════════════════════════════ */}
+      {activeTab === 'agents' && (
+        <div>
+          <div style={{ ...sectionHead, margin: 0 }}>👥 PER-AGENT SCHEDULE</div>
+          {agents.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#446688', fontFamily: 'monospace', fontSize: '16px' }}>
+              No agents hired yet. Hire agents first.
+            </div>
+          ) : (
+            <div>
+              {/* Agent selector */}
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #222233' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {agents.map(a => {
+                    const hasCustom = agentSchedules[a.id] && agentSchedules[a.id].length > 0;
+                    return (
+                      <button key={a.id} onClick={() => { setSelectedAgentId(a.id); setAgentAddMode(false); }} style={{
+                        padding: '4px 10px', fontFamily: 'monospace', fontSize: '15px', cursor: 'pointer', border: '2px solid',
+                        background: selectedAgentId === a.id ? 'var(--pixel-active-bg)' : '#0d0d1a',
+                        color: selectedAgentId === a.id ? 'var(--pixel-agent-text)' : hasCustom ? '#aaccff' : '#555577',
+                        borderColor: selectedAgentId === a.id ? 'var(--pixel-agent-border)' : hasCustom ? '#446688' : '#333344',
+                      }}>
+                        {hasCustom ? '★ ' : ''}{a.name.split(' ')[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected agent schedule */}
+              {selectedAgentId && (() => {
+                const agent = agents.find(a => a.id === selectedAgentId);
+                const agentSched = agentSchedules[selectedAgentId] ?? [];
+                const isUsingGlobal = agentSched.length === 0;
+
+                const handleAgentAddSlot = () => {
+                  if (agentNewSlot.endHour <= agentNewSlot.startHour) return;
+                  const next = [...agentSched, agentNewSlot].sort((a, b) => a.startHour - b.startHour);
+                  onAgentScheduleChange?.(selectedAgentId, next);
+                  setAgentAddMode(false);
+                };
+                const handleAgentDeleteSlot = (i: number) => {
+                  onAgentScheduleChange?.(selectedAgentId, agentSched.filter((_, idx) => idx !== i));
+                };
+                const handleAgentReset = () => {
+                  onAgentScheduleChange?.(selectedAgentId, []);
+                };
+
+                return (
+                  <div>
+                    <div style={{ padding: '8px 12px', borderBottom: '1px solid #222233', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <span style={{ color: 'var(--pixel-agent-text)', fontSize: '18px', fontWeight: 'bold' }}>{agent?.name}</span>
+                        <span style={{ color: '#666688', fontSize: '14px', marginLeft: 8 }}>{agent?.role}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {!agentAddMode && <button onClick={() => setAgentAddMode(true)} style={{ ...btnBase, borderColor: '#00ff88', color: '#00ff88', fontSize: '14px' }}>+ Add</button>}
+                        {!isUsingGlobal && <button onClick={handleAgentReset} style={{ ...btnBase, borderColor: '#ff4444', color: '#ff4444', fontSize: '14px' }}>↺ Use Global</button>}
+                      </div>
+                    </div>
+
+                    {isUsingGlobal && (
+                      <div style={{ padding: '10px 12px', color: '#446688', fontSize: '15px', fontFamily: 'monospace', borderBottom: '1px solid #222233' }}>
+                        📋 Using global schedule. Add slots to override for this agent.
+                      </div>
+                    )}
+
+                    {agentAddMode && (
+                      <div style={{ padding: '10px 12px', borderBottom: '1px solid #222233', background: '#0d0d1a' }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                          <select value={agentNewSlot.type} onChange={e => setAgentNewSlot(p => ({ ...p, type: e.target.value as ScheduleSlot['type'] }))} style={inputStyle}>
+                            {Object.entries(SLOT_LABELS).map(([k, v]) => <option key={k} value={k}>{SLOT_ICONS[k]} {v}</option>)}
+                          </select>
+                          <select value={agentNewSlot.startHour} onChange={e => setAgentNewSlot(p => ({ ...p, startHour: parseFloat(e.target.value) }))} style={inputStyle}>
+                            {HOUR_OPTIONS.map(h => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                          </select>
+                          <span style={{ color: '#666688' }}>→</span>
+                          <select value={agentNewSlot.endHour} onChange={e => setAgentNewSlot(p => ({ ...p, endHour: parseFloat(e.target.value) }))} style={inputStyle}>
+                            {HOUR_OPTIONS.filter(h => h > agentNewSlot.startHour).map(h => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={handleAgentAddSlot} style={{ ...btnBase, borderColor: '#00ff88', color: '#00ff88', flex: 1, padding: '6px' }}>✓ Add</button>
+                          <button onClick={() => setAgentAddMode(false)} style={{ ...btnBase, borderColor: '#ff4444', color: '#ff4444', padding: '6px 12px' }}>✕</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {agentSched.map((slot, i) => {
+                      const isNow = getCurrentSlot(agentSched, officeHour) === slot;
+                      return (
+                        <div key={i} style={{
+                          padding: '8px 12px', borderBottom: '1px dashed #222233',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          background: isNow ? '#111a11' : 'transparent',
+                          borderLeft: isNow ? `3px solid ${SLOT_COLORS[slot.type]}` : '3px solid transparent',
+                        }}>
+                          <span style={{ fontSize: '18px' }}>{SLOT_ICONS[slot.type]}</span>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ color: SLOT_COLORS[slot.type], fontWeight: 'bold', fontSize: '16px' }}>{SLOT_LABELS[slot.type].toUpperCase()}</span>
+                            {isNow && <span style={{ color: '#00ff88', fontSize: '13px', marginLeft: 6 }}>◀ NOW</span>}
+                            <div style={{ color: '#666688', fontSize: '14px' }}>{hourLabel(slot.startHour)} → {hourLabel(slot.endHour)}</div>
+                          </div>
+                          <button onClick={() => handleAgentDeleteSlot(i)} style={{ ...btnBase, borderColor: '#ff4444', color: '#ff4444', fontSize: '14px' }}>✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
