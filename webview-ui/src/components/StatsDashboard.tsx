@@ -34,6 +34,18 @@ const STATUS_COLORS: Record<string, string> = {
   Idle:       '#888888',
 };
 
+interface HireHistoryEntry {
+  id: string;
+  agentName: string;
+  role: string;
+  dept: string;
+  salary: number;
+  currency: string;
+  country: string;
+  action: 'hired' | 'fired';
+  date: string;
+}
+
 interface HiredAgent {
   id: string;
   name: string;
@@ -61,6 +73,7 @@ interface Props {
   eventTemplates?: Array<{ type: string; title: string; icon: string; color: string; desc: string; duration: number }>;
   autoEvents?: boolean;
   onAutoEventsChange?: (v: boolean) => void;
+  hireHistory?: HireHistoryEntry[];
 }
 
 const FLOOR_CAPACITY = 10;
@@ -97,7 +110,7 @@ function PixelProgressBar({ value, max, color }: { value: number; max: number; c
   );
 }
 
-export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [], autoEvents = true, onAutoEventsChange }: Props) {
+export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFire, activeEvent, eventLog = [], onTriggerEvent, eventTemplates = [], autoEvents = true, onAutoEventsChange, hireHistory = [] }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'payroll' | 'rankings' | 'events'>('overview');
   const [selectedEventType, setSelectedEventType] = useState<string>('random');
   const DEFAULT_FX_RATES: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
@@ -254,6 +267,7 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
         <button onClick={() => setActiveTab('rankings')} style={tabBtnStyle(activeTab === 'rankings')}>RANKINGS</button>
         <button onClick={() => setActiveTab('events')} style={tabBtnStyle(activeTab === 'events')}>EVENTS</button>
         <button onClick={() => setActiveTab('fx' as 'overview')} style={tabBtnStyle(activeTab === ('fx' as 'overview'))}>💱 FX</button>
+        <button onClick={() => setActiveTab('history' as 'overview')} style={tabBtnStyle(activeTab === ('history' as 'overview'))}>📜 LOG</button>
       </div>
 
       {/* Content Area */}
@@ -568,6 +582,48 @@ export function StatsDashboard({ agents, currentFloor, onClose, onPromote, onFir
                 }}
               >↺ Reset to Defaults</button>
             </div>
+          </div>
+        )}
+
+        {/* ================== HISTORY TAB ================== */}
+        {activeTab === ('history' as 'overview') && (
+          <div>
+            <div style={{ ...sectionHead, marginTop: 0, borderTop: 'none' }}>📜 HIRE / FIRE LOG</div>
+            {hireHistory.length === 0 ? (
+              <div style={{ padding: '20px 12px', textAlign: 'center', fontFamily: 'monospace', fontSize: '18px', border: '1px dashed #333344', margin: '12px', color: '#446688', background: '#111122' }}>
+                <div style={{ fontSize: '24px', marginBottom: 8 }}>📜</div>
+                <div style={{ color: '#88aaff' }}>NO HISTORY YET</div>
+                <div style={{ color: '#446688', fontSize: '15px', marginTop: 6 }}>Hire or fire agents to see log</div>
+              </div>
+            ) : (
+              <div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
+                {hireHistory.map((entry, i) => (
+                  <div key={i} style={{
+                    padding: '8px 12px', borderBottom: '1px dashed #222233',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: i % 2 === 0 ? '#0c0c18' : 'transparent',
+                  }}>
+                    <span style={{ fontSize: '20px' }}>{entry.action === 'hired' ? '✅' : '🔥'}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '17px', color: entry.action === 'hired' ? '#aaffcc' : '#ff8888', fontWeight: 'bold' }}>
+                        {entry.agentName}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '14px', color: '#666688' }}>
+                        {entry.role} · {entry.dept} · {entry.country}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '15px', color: '#ffdd44' }}>
+                        {entry.currency === 'INR' ? '₹' : entry.currency === 'GBP' ? '£' : entry.currency === 'EUR' ? '€' : entry.currency === 'JPY' ? '¥' : entry.currency === 'RUB' ? '₽' : '$'}{entry.salary.toLocaleString()}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#444466' }}>
+                        {entry.date}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

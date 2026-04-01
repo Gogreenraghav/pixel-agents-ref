@@ -51,23 +51,59 @@ interface HiredAgent {
   tasksCompleted: number;
 }
 
-const hiredAgentsStore: HiredAgent[] = [];
+interface HireHistoryEntry {
+  id: string;
+  agentName: string;
+  role: string;
+  dept: string;
+  salary: number;
+  currency: string;
+  country: string;
+  action: 'hired' | 'fired';
+  date: string;
+}
+
+function loadHistoryFromStorage(): HireHistoryEntry[] {
+  try { const r = localStorage.getItem(LS_HISTORY_KEY); return r ? JSON.parse(r) : []; } catch { return []; }
+}
+function saveHistoryToStorage(h: HireHistoryEntry[]) {
+  try { localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(h.slice(0, 50))); } catch {}
+}
+
+const LS_AGENTS_KEY = 'pixeloffice_agents';
+const LS_HISTORY_KEY = 'pixeloffice_hire_history';
+
+function loadAgentsFromStorage(): HiredAgent[] {
+  try {
+    const raw = localStorage.getItem(LS_AGENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveAgentsToStorage(agents: HiredAgent[]) {
+  try { localStorage.setItem(LS_AGENTS_KEY, JSON.stringify(agents)); } catch { /* ignore */ }
+}
+
+const hiredAgentsStore: HiredAgent[] = loadAgentsFromStorage();
 let hiredAgentsListeners: (() => void)[] = [];
 
 function addHiredAgent(agent: HiredAgent) {
   hiredAgentsStore.push(agent);
+  saveAgentsToStorage(hiredAgentsStore);
   hiredAgentsListeners.forEach(l => l());
 }
 
 function removeHiredAgent(id: string) {
   const idx = hiredAgentsStore.findIndex(a => a.id === id);
   if (idx >= 0) hiredAgentsStore.splice(idx, 1);
+  saveAgentsToStorage(hiredAgentsStore);
   hiredAgentsListeners.forEach(l => l());
 }
 
 function updateHiredAgent(id: string, patch: Partial<HiredAgent>) {
   const agent = hiredAgentsStore.find(a => a.id === id);
   if (agent) Object.assign(agent, patch);
+  saveAgentsToStorage(hiredAgentsStore);
   hiredAgentsListeners.forEach(l => l());
 }
 
@@ -443,6 +479,7 @@ function App() {
   const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
   const [autoEvents, setAutoEvents] = useState(true);
   const [eventLog, setEventLog] = useState<OfficeEvent[]>([]);
   const [dismissedEvent, setDismissedEvent] = useState(false);
@@ -523,6 +560,7 @@ function App() {
   const handleFloorChange = useCallback(async (floor: number) => {
     if (floor === currentFloor) return;
     setCurrentFloor(floor);
+    try { localStorage.setItem('pixeloffice_floor', String(floor)); } catch { /* ignore */ }
     await loadFloorFile(floor);
   }, [currentFloor, loadFloorFile]);
   const selectedHiredAgent = hiredAgents.find(a => a.id === selectedHiredId) ?? null;
@@ -611,6 +649,14 @@ function App() {
   const handleFireAgent = useCallback((id: string) => {
     // Find pixelCharId BEFORE removing from store
     const agent = hiredAgentsStore.find(a => a.id === id);
+    if (agent) {
+      setHireHistory(prev => {
+        const entry: HireHistoryEntry = { id, agentName: agent.name, role: agent.role, dept: agent.dept, salary: agent.salary, currency: agent.currency, country: agent.country, action: 'fired', date: new Date().toLocaleString() };
+        const updated = [entry, ...prev];
+        saveHistoryToStorage(updated);
+        return updated;
+      });
+    }
     const pixelId = agent?.pixelCharId;
     removeHiredAgent(id);
     setSelectedHiredId(null);
@@ -767,7 +813,7 @@ function App() {
         />
       )}
 
-      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} onAutoEventsChange={setAutoEvents} />}
+      {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
       {!isEmbedMode && !dismissedEvent && (
