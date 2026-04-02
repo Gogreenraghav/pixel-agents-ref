@@ -90,7 +90,7 @@ const btnActive: React.CSSProperties = {
 
 const AI_PROVIDERS = [
   { id: 'none', name: 'No AI (NPC)', url: '', defaultModel: '' },
-  { id: 'litellm', name: 'LiteLLM Proxy', url: 'http://69.62.83.21:5050/v1', defaultModel: 'gpt-4o' },
+  { id: 'litellm', name: 'LiteLLM Proxy', url: '', defaultModel: 'gpt-4o' },
   { id: 'openai', name: 'OpenAI', url: 'https://api.openai.com/v1', defaultModel: 'gpt-4o' },
   { id: 'groq', name: 'Groq', url: 'https://api.groq.com/openai/v1', defaultModel: 'llama3-70b-8192' },
   { id: 'ollama', name: 'Ollama (Local)', url: 'http://localhost:11434/v1', defaultModel: 'llama3' },

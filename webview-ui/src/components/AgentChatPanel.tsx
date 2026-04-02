@@ -192,11 +192,18 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#334455', fontSize: '15px', marginTop: 40 }}>
-            <div style={{ fontSize: '32px', marginBottom: 8 }}>💬</div>
-            <div>Start chatting with {agentName}</div>
-            <div style={{ fontSize: '13px', marginTop: 6, color: '#223344' }}>
-              They are a {agentRole} powered by {aiConfig.model}
+          <div style={{ textAlign: 'center', marginTop: 40, padding: '0 20px' }}>
+            <div style={{ fontSize: '40px', marginBottom: 12 }}>💬</div>
+            <div style={{ fontSize: '18px', color: '#aaccff', fontWeight: 'bold', marginBottom: 8 }}>
+              Chat with {agentName}
+            </div>
+            <div style={{ fontSize: '14px', color: '#556677', lineHeight: 1.6 }}>
+              Role: <span style={{ color: '#88aacc' }}>{agentRole}</span><br/>
+              Model: <span style={{ color: providerColor }}>{aiConfig.model}</span><br/>
+              Provider: <span style={{ color: providerColor }}>{aiConfig.provider.toUpperCase()}</span>
+            </div>
+            <div style={{ marginTop: 16, fontSize: '13px', color: '#334455', borderTop: '1px solid #112233', paddingTop: 12 }}>
+              Press Enter to send · Shift+Enter for newline
             </div>
           </div>
         )}
@@ -205,30 +212,52 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
             display: 'flex', flexDirection: 'column',
             alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
           }}>
+            {/* Sender label */}
             <div style={{
-              maxWidth: '85%', padding: '8px 12px',
-              background: msg.role === 'user' ? '#112233' : '#0d1a0d',
-              border: `1px solid ${msg.role === 'user' ? '#334466' : '#224422'}`,
-              color: msg.role === 'user' ? '#aaccff' : '#aaffaa',
-              fontSize: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              fontSize: '12px', fontWeight: 'bold', marginBottom: 3,
+              color: msg.role === 'user' ? '#6699cc' : providerColor,
+              paddingLeft: msg.role === 'user' ? 0 : 4,
+              paddingRight: msg.role === 'user' ? 4 : 0,
+            }}>
+              {msg.role === 'user' ? 'YOU' : agentName.toUpperCase()}
+            </div>
+            {/* Bubble */}
+            <div style={{
+              maxWidth: '88%', padding: '10px 14px',
+              background: msg.role === 'user' ? '#0e1e33' : '#0a1a0a',
+              border: `2px solid ${msg.role === 'user' ? '#2255aa' : '#1a7a3a'}`,
+              color: msg.role === 'user' ? '#ddeeff' : '#ccffcc',
+              fontSize: '16px', lineHeight: '1.65', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              fontWeight: 400,
+              boxShadow: msg.role === 'user' ? '2px 2px 0 #0a1525' : '2px 2px 0 #051505',
             }}>
               {msg.content}
             </div>
-            <div style={{ fontSize: '12px', color: '#333355', marginTop: 2 }}>
-              {msg.role === 'user' ? 'You' : agentName} · {new Date(msg.ts).toLocaleTimeString()}
+            {/* Timestamp */}
+            <div style={{ fontSize: '11px', color: '#334455', marginTop: 3,
+              paddingLeft: msg.role === 'user' ? 0 : 4,
+              paddingRight: msg.role === 'user' ? 4 : 0,
+            }}>
+              {new Date(msg.ts).toLocaleTimeString()}
             </div>
           </div>
         ))}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-            <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #224422', color: '#00ff88', fontSize: '15px' }}>
-              ▌ thinking...
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold', color: providerColor, marginBottom: 3, paddingLeft: 4 }}>
+              {agentName.toUpperCase()}
+            </div>
+            <div style={{
+              padding: '10px 14px', background: '#0a1a0a', border: '2px solid #1a7a3a',
+              color: '#00ff88', fontSize: '16px', boxShadow: '2px 2px 0 #051505',
+            }}>
+              <span style={{ animation: 'blink 1s step-end infinite' }}>▌</span> thinking...
             </div>
           </div>
         )}
         {error && (
-          <div style={{ padding: '6px 10px', background: '#1a0a0a', border: '1px solid #ff4444', color: '#ff8888', fontSize: '13px' }}>
-            ⚠ {error}
+          <div style={{ padding: '10px 14px', background: '#1a0505', border: '2px solid #aa2222', color: '#ffaaaa', fontSize: '15px', lineHeight: 1.5 }}>
+            ⚠ <strong>Error:</strong> {error}
           </div>
         )}
         <div ref={bottomRef} />
@@ -244,24 +273,26 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
       )}
 
       {/* Input */}
-      <div style={{ padding: '10px 12px', borderTop: '2px solid var(--pixel-agent-border)', display: 'flex', gap: 8 }}>
+      <div style={{ padding: '10px 12px', borderTop: '2px solid var(--pixel-agent-border)', display: 'flex', gap: 8, background: '#060610' }}>
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          placeholder="Ask anything... (Enter to send)"
+          placeholder="Type your message... (Enter to send, Shift+Enter for newline)"
           rows={2}
           style={{
-            ...inputStyle, flex: 1, resize: 'none', fontSize: '15px',
-            height: 60, padding: '8px',
+            ...inputStyle, flex: 1, resize: 'none', fontSize: '16px',
+            height: 64, padding: '10px 12px', lineHeight: 1.5,
+            border: '2px solid #2255aa',
           }}
         />
         <button onClick={sendMessage} disabled={loading || !input.trim()} style={{
-          padding: '0 12px', fontFamily: 'monospace', fontSize: '18px',
-          background: loading || !input.trim() ? '#111122' : '#112211',
-          color: loading || !input.trim() ? '#333344' : '#00ff88',
-          border: '2px solid', borderColor: loading || !input.trim() ? '#222233' : '#00ff88',
+          padding: '0 14px', fontFamily: 'monospace', fontSize: '22px',
+          background: loading || !input.trim() ? '#0a0a1a' : '#0a1a0a',
+          color: loading || !input.trim() ? '#222233' : '#00ff88',
+          border: '2px solid', borderColor: loading || !input.trim() ? '#1a1a2a' : '#00cc66',
           cursor: loading || !input.trim() ? 'default' : 'pointer', alignSelf: 'stretch',
+          transition: 'all 0.1s',
         }}>▶</button>
       </div>
     </div>
