@@ -17,6 +17,21 @@ interface Props {
 }
 
 const TASK_TYPES = ['Code', 'Research', 'Draft', 'Analysis', 'Sales Script', 'Design', 'Review'];
+const LS_TASKS = 'pixeloffice_tasks';
+const LS_OUTPUTS = 'pixeloffice_outputs';
+
+function loadTasks(): Task[] {
+  try { return JSON.parse(localStorage.getItem(LS_TASKS) ?? 'null') ?? MOCK_TASKS; } catch { return MOCK_TASKS; }
+}
+function saveTasks(t: Task[]) { try { localStorage.setItem(LS_TASKS, JSON.stringify(t)); } catch {} }
+function saveOutput(agentId: string, taskId: string, taskTitle: string, output: string) {
+  try {
+    const key = LS_OUTPUTS + '_' + agentId;
+    const existing = JSON.parse(localStorage.getItem(key) ?? '[]');
+    existing.unshift({ taskId, taskTitle, output, date: new Date().toLocaleString() });
+    localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+  } catch {}
+}
 const MOCK_TASKS: Task[] = [
   { id: 't1', agentId: '', agentName: 'Ravi (Developer)', type: 'Code', title: 'Build login API', status: 'done', createdAt: '2026-04-02 09:00', output: 'Login API completed with JWT auth.' },
   { id: 't2', agentId: '', agentName: 'Priya (Designer)', type: 'Design', title: 'Homepage mockup', status: 'running', createdAt: '2026-04-02 10:30' },
@@ -37,18 +52,53 @@ const inp: React.CSSProperties = {
 };
 
 function TaskBoard({ agents }: { agents: HiredAgent[] }) {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+  const [runningId, setRunningId] = useState<string | null>(null);
+  const [_errorId, setErrorId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState('Code');
   const [newAgent, setNewAgent] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const updateTasks = (updater: (prev: Task[]) => Task[]) => {
+    setTasks(prev => { const next = updater(prev); saveTasks(next); return next; });
+  };
+
   const addTask = () => {
     if (!newTitle.trim()) return;
-    const agentName = agents.find(a => a.id === newAgent)?.name ?? 'Unassigned';
-    setTasks(p => [...p, { id: `t${Date.now()}`, agentId: newAgent, agentName, type: newType, title: newTitle, status: 'todo', createdAt: new Date().toLocaleString() }]);
+    const agent = agents.find(a => a.id === newAgent);
+    const agentName = agent?.name ?? 'Unassigned';
+    const newTask: Task = { id: `t${Date.now()}`, agentId: newAgent, agentName, type: newType, title: newTitle, status: 'todo', createdAt: new Date().toLocaleString() };
+    updateTasks(p => [newTask, ...p]);
     setNewTitle(''); setShowNew(false);
+  };
+
+  const runTaskWithAI = async (task: Task) => {
+    const agent = agents.find(a => a.id === task.agentId);
+    if (!agent?.aiConfig) { setErrorId(task.id); return; }
+    setRunningId(task.id);
+    setErrorId(null);
+    updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'running' } : t));
+
+    const prompt = `You are ${agent.name}, a ${agent.role} at a company. Complete this task professionally and thoroughly:\n\nTask Type: ${task.type}\nTask: ${task.title}\n\nProvide a complete, professional output for this task. Be specific and practical.`;
+
+    try {
+      const cfg = agent.aiConfig as any;
+      const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+        body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 512 }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const output = data.choices?.[0]?.message?.content ?? '(no output)';
+      updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'done', output } : t));
+      saveOutput(task.agentId, task.id, task.title, output);
+    } catch (e: any) {
+      updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'failed', output: e.message } : t));
+      setErrorId(task.id);
+    } finally { setRunningId(null); }
   };
 
   return (
@@ -87,8 +137,28 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
                   <div style={{ fontSize: '18px', color: '#ffcc00', fontWeight: 'bold', marginBottom: 6 }}>[{task.type}]</div>
                   <div style={{ fontSize: '20px', color: '#aaddff', fontWeight: 'bold', lineHeight: 1.4 }}>{task.title}</div>
                   <div style={{ fontSize: '18px', color: '#55ffbb', fontWeight: 'bold', marginTop: 8 }}>{task.agentName}</div>
+                  {/* Run / Delete buttons */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                    {task.status === 'todo' && agents.find(a => a.id === task.agentId)?.aiConfig && (
+                      <button onClick={e => { e.stopPropagation(); runTaskWithAI(task); }}
+                        disabled={runningId === task.id}
+                        style={{ flex: 1, padding: '6px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
+                        {runningId === task.id ? '⏳ Running...' : '▶ Run (AI)'}
+                      </button>
+                    )}
+                    {task.status === 'failed' && agents.find(a => a.id === task.agentId)?.aiConfig && (
+                      <button onClick={e => { e.stopPropagation(); updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'todo', output: undefined } : t)); }}
+                        style={{ flex: 1, padding: '6px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#1a0a0a', color: '#ffaa44', border: '2px solid #aa5500', cursor: 'pointer' }}>
+                        🔄 Retry
+                      </button>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); updateTasks(p => p.filter(t => t.id !== task.id)); }}
+                      style={{ padding: '6px 10px', fontFamily: 'monospace', fontSize: '15px', background: '#1a0808', color: '#ff4444', border: '2px solid #aa2222', cursor: 'pointer' }}>
+                      🗑
+                    </button>
+                  </div>
                   {expandedId === task.id && task.output && (
-                    <div style={{ marginTop: 10, padding: '10px', background: '#0a1a0a', border: '2px solid #1a7a3a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.6 }}>{task.output}</div>
+                    <div style={{ marginTop: 10, padding: '10px', background: '#0a1a0a', border: '2px solid #1a7a3a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{task.output}</div>
                   )}
                 </div>
               ))}
@@ -100,18 +170,25 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   );
 }
 
+function loadAgentOutputs(agentId: string): Array<{name: string; size: string; date: string; content: string}> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_OUTPUTS + '_' + agentId) ?? '[]');
+    return raw.map((o: any) => ({
+      name: `${o.taskTitle?.replace(/[^a-z0-9]/gi,'_').toLowerCase() ?? 'output'}_${o.date?.replace(/[^0-9]/g,'').slice(0,12) ?? Date.now()}.txt`,
+      size: `${(o.output?.length / 1024).toFixed(1)} KB`,
+      date: o.date,
+      content: o.output,
+    }));
+  } catch { return []; }
+}
+
 function OutputFolders({ agents }: { agents: HiredAgent[] }) {
   const [sel, setSel] = useState<string | null>(agents[0]?.id ?? null);
   const [preview, setPreview] = useState<string | null>(null);
-
-  const mockFiles = (name: string) => [
-    { name: `code_output_2026-04-02_09-15.txt`, size: '2.4 KB', date: '2026-04-02 09:15', content: `// Generated by ${name}\nfunction loginUser(email, password) {\n  // JWT auth implementation\n}` },
-    { name: `research_2026-04-02_11-00.txt`, size: '5.1 KB', date: '2026-04-02 11:00', content: `Market Research Report\nQ2 2026 Analysis\n\nKey findings...` },
-    { name: `draft_email_2026-04-01.txt`, size: '1.2 KB', date: '2026-04-01 14:30', content: `Subject: Q2 Campaign Launch\n\nDear customer...` },
-  ];
+  const [refresh, setRefresh] = useState(0); void refresh;
 
   const agent = agents.find(a => a.id === sel);
-  const files = agent ? mockFiles(agent.name) : [];
+  const files = agent ? loadAgentOutputs(agent.id) : [];
 
   return (
     <div style={{ display: 'flex', height: '100%', gap: 0 }}>
@@ -133,8 +210,9 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {agent ? (
           <>
-            <div style={{ padding: '12px 18px', borderBottom: '2px solid #223355', fontSize: '22px', color: '#66ddff', fontWeight: 'bold', background: '#0d0d1a' }}>
-              📁 {agent.name} / {agent.role} — {files.length} files
+            <div style={{ padding: '12px 18px', borderBottom: '2px solid #223355', fontSize: '22px', color: '#66ddff', fontWeight: 'bold', background: '#0d0d1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>📁 {agent.name} / {agent.role} — {files.length} files</span>
+              <button onClick={() => setRefresh(r => r + 1)} style={{ padding: '4px 12px', fontFamily: 'monospace', fontSize: '15px', background: '#0d1a2a', color: '#66aaff', border: '2px solid #334466', cursor: 'pointer' }}>🔄</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {files.map((f, i) => (
