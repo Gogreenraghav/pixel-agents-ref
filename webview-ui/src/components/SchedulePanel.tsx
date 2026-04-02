@@ -150,11 +150,10 @@ export function SchedulePanel({ onClose, officeHour, onOfficeHourChange, clockAu
 
   return (
     <div style={{
-      position: 'absolute', bottom: '100%', left: 0, marginBottom: 8,
       background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)',
-      boxShadow: 'var(--pixel-shadow)', width: 420, zIndex: 200,
+      boxShadow: 'var(--pixel-shadow)', width: 400,
       display: 'flex', flexDirection: 'column', fontFamily: 'monospace',
-      maxHeight: '80vh', overflowY: 'auto',
+      maxHeight: 'calc(100vh - 80px)', overflowY: 'auto',
     }}>
       {/* Header */}
       <div style={{

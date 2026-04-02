@@ -948,7 +948,7 @@ function App() {
         <EventBanner event={activeEvent} onDismiss={() => setDismissedEvent(true)} />
       )}
       {!isEmbedMode && scheduleOpen && (
-        <div style={{ position: 'absolute', bottom: 48, left: 220, zIndex: 200 }}>
+        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 200, maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
           <SchedulePanel
             onClose={() => setScheduleOpen(false)}
             officeHour={officeHour}
@@ -973,7 +973,6 @@ function App() {
       )}
       {!isEmbedMode && <BottomToolbar
         isEditMode={editor.isEditMode}
-        onOpenClaude={editor.handleOpenClaude}
         onToggleEditMode={editor.handleToggleEditMode}
         isDebugMode={isDebugMode}
         onToggleDebugMode={handleToggleDebugMode}
