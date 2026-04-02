@@ -110,7 +110,7 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
               {agents.map(a => <option key={a.id} value={a.id}>{a.name} ({a.role})</option>)}
             </select>
           </div>
-          <button onClick={addTask} style={{ ...inputStyle, cursor: 'pointer', background: '#112211', color: '#00ff88', border: '2px solid #00ff88' }}>
+          <button onClick={addTask} style={{ ...inputStyle, cursor: 'pointer', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', fontSize: '18px', fontWeight: 'bold' }}>
             ✓ Add Task
           </button>
         </div>
@@ -189,16 +189,16 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
                     <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginTop: 2 }}>{f.date} · {f.size}</div>
                   </div>
                   <button onClick={() => setPreviewFile(previewFile === f.name ? null : f.name)} style={{
-                    padding: '4px 10px', fontFamily: 'monospace', fontSize: '13px',
-                    background: '#0d1a2a', color: '#6699cc', border: '1px solid #334466', cursor: 'pointer',
+                    padding: '6px 14px', fontFamily: 'monospace', fontSize: '16px',
+                    background: '#0d1a2a', color: '#88aaff', border: '2px solid #334466', cursor: 'pointer', fontWeight: 'bold',
                   }}>👁 View</button>
                   <button onClick={() => {
                     const el = document.createElement('a');
                     el.href = 'data:text/plain,' + encodeURIComponent(f.content);
                     el.download = f.name; el.click();
                   }} style={{
-                    padding: '4px 10px', fontFamily: 'monospace', fontSize: '13px',
-                    background: '#0d2a0d', color: '#66cc66', border: '1px solid #336633', cursor: 'pointer',
+                    padding: '6px 14px', fontFamily: 'monospace', fontSize: '16px',
+                    background: '#0d2a0d', color: '#66ff88', border: '2px solid #336633', cursor: 'pointer', fontWeight: 'bold',
                   }}>⬇ Save</button>
                 </div>
               ))}
@@ -250,8 +250,8 @@ function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
       })) : entries).map((e, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 2, background: i % 2 === 0 ? '#0a0a14' : '#080810' }}>
           <div style={{ padding: '10px 12px', borderRight: '1px solid #222244' }}>
-            <div style={{ fontSize: '19px', color: '#ffffff', fontWeight: 'bold' }}>{e.agentName}</div>
-            <div style={{ fontSize: '16px', color: '#88aacc' }}>{e.role}</div>
+            <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>{e.agentName}</div>
+            <div style={{ fontSize: '18px', color: '#88ccff', fontWeight: 'bold' }}>{e.role}</div>
           </div>
           <div style={{ padding: '10px 12px', fontSize: '16px', color: 'var(--pixel-text-dim)', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.yesterday}</div>
           <div style={{ padding: '10px 12px', fontSize: '16px', color: '#aaffaa', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.today}</div>
@@ -291,7 +291,7 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
       {/* Performance bar chart */}
       <div style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
         <div style={{ fontSize: '20px', color: 'var(--pixel-agent-text)', marginBottom: 16, fontWeight: 'bold' }}>📊 Agent Performance</div>
-        {agents.length === 0 && <div style={{ color: '#334455', fontSize: '14px' }}>No agents hired</div>}
+        {agents.length === 0 && <div style={{ color: '#667788', fontSize: '17px' }}>No agents hired</div>}
         {agents.map(a => (
           <div key={a.id} style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -320,7 +320,7 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
             <span style={{ fontSize: '15px', color: 'var(--pixel-agent-text)', width: 20 }}>{count}</span>
           </div>
         ))}
-        {Object.keys(deptCount).length === 0 && <div style={{ color: '#334455', fontSize: '14px' }}>No agents hired</div>}
+        {Object.keys(deptCount).length === 0 && <div style={{ color: '#667788', fontSize: '17px' }}>No agents hired</div>}
       </div>
     </div>
   );
@@ -342,12 +342,12 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
             <div key={a.id} style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ fontSize: '28px' }}>👤</div>
-                <div style={{ fontSize: '11px', padding: '2px 8px', background: statusColor + '22', border: `1px solid ${statusColor}`, color: statusColor }}>
+                <div style={{ fontSize: '15px', padding: '4px 10px', background: statusColor + '33', border: `2px solid ${statusColor}`, color: statusColor, fontWeight: 'bold' }}>
                   {a.status}
                 </div>
               </div>
-              <div style={{ fontSize: '20px', color: '#ffffff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
-              <div style={{ fontSize: '17px', color: '#88ccff', marginBottom: 2 }}>{a.role}</div>
+              <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
+              <div style={{ fontSize: '18px', color: '#88eeff', fontWeight: 'bold', marginBottom: 2 }}>{a.role}</div>
               <div style={{ fontSize: '16px', color: '#667788', marginBottom: 10 }}>{a.dept}</div>
               {a.aiConfig && (
                 <div style={{ fontSize: '15px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', marginBottom: 10 }}>
@@ -357,13 +357,13 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
               <div style={{ display: 'flex', gap: 6 }}>
                 {a.aiConfig && (
                   <button onClick={() => onChat?.(a.id)} style={{
-                    flex: 1, padding: '5px', fontFamily: 'monospace', fontSize: '13px',
-                    background: '#0d1a2a', color: '#6699cc', border: '1px solid #334466', cursor: 'pointer',
+                    flex: 1, padding: '8px', fontFamily: 'monospace', fontSize: '16px',
+                    background: '#0d1a2a', color: '#88aaff', border: '2px solid #334466', cursor: 'pointer', fontWeight: 'bold',
                   }}>💬 Chat</button>
                 )}
                 <button style={{
-                  flex: 1, padding: '5px', fontFamily: 'monospace', fontSize: '13px',
-                  background: '#0d2a0d', color: '#66cc66', border: '1px solid #336633', cursor: 'pointer',
+                  flex: 1, padding: '8px', fontFamily: 'monospace', fontSize: '16px',
+                  background: '#0d2a0d', color: '#66ff88', border: '2px solid #336633', cursor: 'pointer', fontWeight: 'bold',
                 }}>📋 Task</button>
               </div>
             </div>
