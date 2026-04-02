@@ -65,11 +65,11 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   const [newAgent, setNewAgent] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const cols: Array<{ key: Task['status']; label: string; color: string }> = [
-    { key: 'todo', label: '📌 To Do', color: '#334466' },
-    { key: 'running', label: '⚡ Running', color: '#664400' },
-    { key: 'done', label: '✅ Done', color: '#114422' },
-    { key: 'failed', label: '❌ Failed', color: '#441111' },
+  const cols: Array<{ key: Task['status']; label: string; color: string; textColor: string }> = [
+    { key: 'todo', label: '📌 TO DO', color: '#1a2a4a', textColor: '#66aaff' },
+    { key: 'running', label: '⚡ RUNNING', color: '#2a1a00', textColor: '#ffaa33' },
+    { key: 'done', label: '✅ DONE', color: '#0a2a14', textColor: '#33ff88' },
+    { key: 'failed', label: '❌ FAILED', color: '#2a0a0a', textColor: '#ff5555' },
   ];
 
   const inputStyle: React.CSSProperties = {
@@ -124,9 +124,9 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
               {tasks.filter(t => t.status === col.key).map(task => (
                 <div key={task.id} style={{ background: '#111128', border: '2px solid #334466', padding: '12px 14px', cursor: 'pointer' }}
                   onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
-                  <div style={{ fontSize: '16px', color: '#ffdd44', marginBottom: 6, fontWeight: 'bold' }}>[{task.type}]</div>
-                  <div style={{ fontSize: '20px', color: '#ffffff', fontWeight: 'bold', lineHeight: 1.4 }}>{task.title}</div>
-                  <div style={{ fontSize: '17px', color: '#88bbdd', marginTop: 6 }}>{task.agentName}</div>
+                  <div style={{ fontSize: '19px', color: '#ffcc00', marginBottom: 8, fontWeight: 'bold', letterSpacing: 1 }}>[{task.type}]</div>
+                  <div style={{ fontSize: '21px', color: '#aaddff', fontWeight: 'bold', lineHeight: 1.4 }}>{task.title}</div>
+                  <div style={{ fontSize: '18px', color: '#88ffcc', marginTop: 8, fontWeight: 'bold' }}>{task.agentName}</div>
                   {expandedId === task.id && task.output && (
                     <div style={{ marginTop: 8, padding: '6px 8px', background: '#0a1a0a', border: '1px solid #1a5a2a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.5 }}>
                       {task.output}
