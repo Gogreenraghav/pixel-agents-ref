@@ -122,11 +122,11 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
             <div style={{ padding: '6px 10px', background: col.color, fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{col.label} ({tasks.filter(t => t.status === col.key).length})</div>
             <div style={{ overflowY: 'auto', flex: 1, padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {tasks.filter(t => t.status === col.key).map(task => (
-                <div key={task.id} style={{ background: '#0a0a14', border: '1px solid #222244', padding: '8px 10px', cursor: 'pointer' }}
+                <div key={task.id} style={{ background: '#111128', border: '2px solid #334466', padding: '12px 14px', cursor: 'pointer' }}
                   onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
-                  <div style={{ fontSize: '16px', color: 'var(--pixel-agent-text)', marginBottom: 6 }}>[{task.type}]</div>
-                  <div style={{ fontSize: '20px', color: 'var(--pixel-text)', fontWeight: 'bold' }}>{task.title}</div>
-                  <div style={{ fontSize: '17px', color: 'var(--pixel-text-dim)', marginTop: 6 }}>{task.agentName}</div>
+                  <div style={{ fontSize: '16px', color: '#ffdd44', marginBottom: 6, fontWeight: 'bold' }}>[{task.type}]</div>
+                  <div style={{ fontSize: '20px', color: '#ffffff', fontWeight: 'bold', lineHeight: 1.4 }}>{task.title}</div>
+                  <div style={{ fontSize: '17px', color: '#88bbdd', marginTop: 6 }}>{task.agentName}</div>
                   {expandedId === task.id && task.output && (
                     <div style={{ marginTop: 8, padding: '6px 8px', background: '#0a1a0a', border: '1px solid #1a5a2a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.5 }}>
                       {task.output}
@@ -250,8 +250,8 @@ function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
       })) : entries).map((e, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 2, background: i % 2 === 0 ? '#0a0a14' : '#080810' }}>
           <div style={{ padding: '10px 12px', borderRight: '1px solid #222244' }}>
-            <div style={{ fontSize: '17px', color: 'var(--pixel-agent-text)' }}>{e.agentName}</div>
-            <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)' }}>{e.role}</div>
+            <div style={{ fontSize: '19px', color: '#ffffff', fontWeight: 'bold' }}>{e.agentName}</div>
+            <div style={{ fontSize: '16px', color: '#88aacc' }}>{e.role}</div>
           </div>
           <div style={{ padding: '10px 12px', fontSize: '16px', color: 'var(--pixel-text-dim)', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.yesterday}</div>
           <div style={{ padding: '10px 12px', fontSize: '16px', color: '#aaffaa', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.today}</div>
@@ -282,8 +282,8 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
           { label: '✅ Tasks Done', value: agents.reduce((s, a) => s + (a.tasksCompleted ?? 0), 0), color: '#ff88cc' },
         ].map(kpi => (
           <div key={kpi.label} style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
-            <div style={{ fontSize: '18px', color: 'var(--pixel-text-dim)', marginBottom: 10 }}>{kpi.label}</div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: kpi.color as string }}>{kpi.value}</div>
+            <div style={{ fontSize: '18px', color: '#8899aa', marginBottom: 10, fontWeight: 'bold' }}>{kpi.label}</div>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: kpi.color as string, textShadow: '0 0 8px currentColor' }}>{kpi.value}</div>
           </div>
         ))}
       </div>
@@ -346,9 +346,9 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
                   {a.status}
                 </div>
               </div>
-              <div style={{ fontSize: '18px', color: 'var(--pixel-text)', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
-              <div style={{ fontSize: '16px', color: 'var(--pixel-agent-text)', marginBottom: 2 }}>{a.role}</div>
-              <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginBottom: 10 }}>{a.dept}</div>
+              <div style={{ fontSize: '20px', color: '#ffffff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
+              <div style={{ fontSize: '17px', color: '#88ccff', marginBottom: 2 }}>{a.role}</div>
+              <div style={{ fontSize: '16px', color: '#667788', marginBottom: 10 }}>{a.dept}</div>
               {a.aiConfig && (
                 <div style={{ fontSize: '15px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', marginBottom: 10 }}>
                   🤖 {a.aiConfig.provider} · {a.aiConfig.model}
@@ -401,8 +401,10 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
         <span style={{ fontSize: '28px' }}>🏢</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--pixel-agent-text)', letterSpacing: 1 }}>COMPANY DASHBOARD</div>
-          <div style={{ fontSize: '20px', color: 'var(--pixel-text)', marginTop: 4, fontWeight: 'bold' }}>
-            👥 {agents.length} agents &nbsp;·&nbsp; 💰 ${companyBalance.toLocaleString()} &nbsp;·&nbsp; 📈 +${Math.round(companyRevenue / 30).toLocaleString()}/day
+          <div style={{ fontSize: '22px', marginTop: 6, fontWeight: 'bold', display: 'flex', gap: 24 }}>
+            <span style={{ color: '#88ccff' }}>👥 {agents.length} agents</span>
+            <span style={{ color: '#00ff88' }}>💰 ${companyBalance.toLocaleString()}</span>
+            <span style={{ color: '#ffdd44' }}>📈 +${Math.round(companyRevenue / 30).toLocaleString()}/day</span>
           </div>
         </div>
         <button onClick={onClose} style={{
