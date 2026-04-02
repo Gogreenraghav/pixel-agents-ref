@@ -4,7 +4,7 @@ import type { WorkspaceFolder } from '../hooks/useExtensionMessages.js';
 import { SettingsModal } from './SettingsModal.js';
 
 interface BottomToolbarProps {
-  onHireAgent?: (name: string, role: string, dept: string, salary: number, currency: string, country: string) => void;
+  onHireAgent?: (name: string, role: string, dept: string, salary: number, currency: string, country: string, aiConfig?: any) => void;
   currentFloor?: number;
   onFloorChange?: (floor: number) => void;
   onStatsClick?: () => void;
@@ -70,6 +70,35 @@ const btnActive: React.CSSProperties = {
 
 
 // ── HireDialog component ───────────────────────────────────────────────────
+
+
+
+
+// Base USD monthly salaries
+
+
+// Conversion rates to USD (approx)
+
+
+
+
+
+
+
+
+
+
+const AI_PROVIDERS = [
+  { id: 'none', name: 'No AI (NPC)', url: '', defaultModel: '' },
+  { id: 'litellm', name: 'LiteLLM Proxy', url: 'http://69.62.83.21:5050/v1', defaultModel: 'gpt-4o' },
+  { id: 'openai', name: 'OpenAI', url: 'https://api.openai.com/v1', defaultModel: 'gpt-4o' },
+  { id: 'groq', name: 'Groq', url: 'https://api.groq.com/openai/v1', defaultModel: 'llama3-70b-8192' },
+  { id: 'ollama', name: 'Ollama (Local)', url: 'http://localhost:11434/v1', defaultModel: 'llama3' },
+  { id: 'openrouter', name: 'OpenRouter', url: 'https://openrouter.ai/api/v1', defaultModel: 'anthropic/claude-3.5-sonnet' },
+  { id: 'custom', name: 'Custom (OpenAI compat)', url: 'https://', defaultModel: '' },
+];
+
+
 const COUNTRIES = [
   { name: 'Global', flag: '🌍', cur: 'USD', sym: '$' },
   { name: 'India', flag: '🇮🇳', cur: 'INR', sym: '₹' },
@@ -79,29 +108,28 @@ const COUNTRIES = [
   { name: 'Japan', flag: '🇯🇵', cur: 'JPY', sym: '¥' },
   { name: 'Russia', flag: '🇷🇺', cur: 'RUB', sym: '₽' },
 ];
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$', INR: '₹', GBP: '£', EUR: '€', JPY: '¥', RUB: '₽',
-};
-
-// Base USD monthly salaries
-const ROLE_SALARY: Record<string, number> = {
-  CEO: 12000, CTO: 10000, Manager: 6000, Developer: 5000, Designer: 4500, QA: 4000,
-  HR: 4000, Marketing: 4500, Sales: 4000, Analyst: 4500, DevOps: 5500, Intern: 1500,
-};
-
-// Conversion rates to USD (approx)
-const FX_RATES: Record<string, number> = {
-  USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90,
-};
-
-function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: string, role: string, dept: string, salary: number, currency: string, country: string) => void }) {
+const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', INR: '₹', GBP: '£', EUR: '€', JPY: '¥', RUB: '₽' };
+const ROLE_SALARY: Record<string, number> = { CEO: 12000, CTO: 10000, Manager: 6000, Developer: 5000, Designer: 4500, QA: 4000, HR: 4000, Marketing: 4500, Sales: 4000, Analyst: 4500, DevOps: 5500, Intern: 1500 };
+const FX_RATES: Record<string, number> = { USD: 1, INR: 84, GBP: 0.78, EUR: 0.92, JPY: 150, RUB: 90 };
+function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: string, role: string, dept: string, salary: number, currency: string, country: string, aiConfig?: any) => void }) {
+  const [tab, setTab] = useState<'profile' | 'ai'>('profile');
+  
+  // Profile state
   const [name, setName] = useState('');
   const [role, setRole] = useState('Developer');
   const [dept, setDept] = useState('Engineering');
   const [country, setCountry] = useState('Global');
   const [currency, setCurrency] = useState('USD');
   const [salaryStr, setSalaryStr] = useState(String(ROLE_SALARY['Developer']));
+  
+  // AI state
+  const [aiProvider, setAiProvider] = useState('none');
+  const [aiUrl, setAiUrl] = useState('');
+  const [aiKey, setAiKey] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testMsg, setTestMsg] = useState('');
+
   const [hovered, setHovered] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,23 +143,74 @@ function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: s
     if (c) setCurrency(c.cur);
   }, [country]);
 
+  useEffect(() => {
+    const p = AI_PROVIDERS.find(x => x.id === aiProvider);
+    if (p && p.id !== 'none' && p.id !== 'custom') {
+      setAiUrl(p.url);
+      setAiModel(p.defaultModel);
+    }
+    setTestStatus('idle');
+  }, [aiProvider]);
+
+  const handleTestConnection = async () => {
+    if (aiProvider === 'none') return;
+    setTestStatus('testing');
+    try {
+      const res = await fetch(aiUrl.replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${aiKey}`
+        },
+        body: JSON.stringify({
+          model: aiModel,
+          messages: [{ role: 'user', content: 'Reply with "OK"' }],
+          max_tokens: 5
+        })
+      });
+      if (res.ok) {
+        setTestStatus('success');
+        setTestMsg('Connection OK!');
+      } else {
+        const err = await res.text();
+        setTestStatus('error');
+        setTestMsg(`HTTP ${res.status}: ${err.substring(0, 40)}`);
+      }
+    } catch (e: any) {
+      setTestStatus('error');
+      setTestMsg(e.message || 'Network error / CORS');
+    }
+  };
+
   const handleHire = () => {
     const finalName = name.trim() || `Agent ${Math.floor(Math.random() * 1000)}`;
     const finalSalary = parseInt(salaryStr, 10) || 0;
-    onHire(finalName, role, dept, finalSalary, currency, country);
+    
+    let config = undefined;
+    if (aiProvider !== 'none') {
+      config = {
+        provider: aiProvider,
+        baseUrl: aiUrl,
+        apiKey: aiKey,
+        model: aiModel,
+        connected: testStatus === 'success',
+      };
+    }
+    
+    onHire(finalName, role, dept, finalSalary, currency, country, config);
     onClose();
   };
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px', background: 'var(--pixel-bg)', color: 'var(--pixel-text)',
-    border: '2px solid var(--pixel-border)', fontFamily: 'monospace', fontSize: '18px', boxSizing: 'border-box',
+    border: '2px solid var(--pixel-border)', fontFamily: 'monospace', fontSize: '16px', boxSizing: 'border-box',
   };
 
   return (
     <div style={{
       position: 'absolute', bottom: '100%', left: 0, marginBottom: 8,
       background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)',
-      boxShadow: 'var(--pixel-shadow)', width: 360, zIndex: 'var(--pixel-controls-z)',
+      boxShadow: 'var(--pixel-shadow)', width: 380, zIndex: 'var(--pixel-controls-z)',
       display: 'flex', flexDirection: 'column', fontFamily: 'monospace',
     }}>
       <div style={{
@@ -143,52 +222,115 @@ function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: s
         <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--pixel-text)', fontSize: '20px', cursor: 'pointer', padding: '0 4px' }}>✕</button>
       </div>
 
-      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Name</label>
-          <input autoFocus type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Agent Name..." style={inputStyle} onKeyDown={e => { if (e.key === 'Enter') handleHire(); if (e.key === 'Escape') onClose(); }} />
-        </div>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--pixel-border)', background: '#0a0a14' }}>
+        <button onClick={() => setTab('profile')} style={{
+          flex: 1, padding: '8px', fontFamily: 'monospace', fontSize: '16px', cursor: 'pointer', border: 'none',
+          background: tab === 'profile' ? 'var(--pixel-active-bg)' : 'transparent',
+          color: tab === 'profile' ? 'var(--pixel-agent-text)' : '#555577',
+          borderBottom: tab === 'profile' ? '2px solid var(--pixel-agent-border)' : '2px solid transparent',
+        }}>📝 Profile</button>
+        <button onClick={() => setTab('ai')} style={{
+          flex: 1, padding: '8px', fontFamily: 'monospace', fontSize: '16px', cursor: 'pointer', border: 'none',
+          background: tab === 'ai' ? 'var(--pixel-active-bg)' : 'transparent',
+          color: tab === 'ai' ? 'var(--pixel-agent-text)' : '#555577',
+          borderBottom: tab === 'ai' ? '2px solid var(--pixel-agent-border)' : '2px solid transparent',
+        }}>🤖 AI Brain</button>
+      </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Role</label>
-            <select value={role} onChange={e => setRole(e.target.value)} style={inputStyle}>
-              {Object.keys(ROLE_SALARY).map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Dept</label>
-            <select value={dept} onChange={e => setDept(e.target.value)} style={inputStyle}>
-              {['Engineering', 'Design', 'Management', 'QA', 'Marketing', 'Sales', 'HR', 'Operations'].map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-        </div>
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '60vh', overflowY: 'auto' }}>
+        {tab === 'profile' && (
+          <>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Name</label>
+              <input autoFocus type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Agent Name..." style={inputStyle} />
+            </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Location</label>
-            <select value={country} onChange={e => setCountry(e.target.value)} style={inputStyle}>
-              {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-            </select>
-          </div>
-          <div style={{ width: 80 }}>
-            <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Curr</label>
-            <select value={currency} onChange={e => setCurrency(e.target.value)} style={inputStyle}>
-              {Object.keys(CURRENCY_SYMBOLS).map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Role</label>
+                <select value={role} onChange={e => setRole(e.target.value)} style={inputStyle}>
+                  {Object.keys(ROLE_SALARY).map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Dept</label>
+                <select value={dept} onChange={e => setDept(e.target.value)} style={inputStyle}>
+                  {['Engineering', 'Design', 'Management', 'QA', 'Marketing', 'Sales', 'HR', 'Operations'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '16px' }}>Monthly Salary ({CURRENCY_SYMBOLS[currency] ?? currency})</label>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--pixel-bg)', border: '2px solid var(--pixel-border)' }}>
-            <span style={{ padding: '0 8px', color: '#aaccff', fontSize: '18px' }}>{CURRENCY_SYMBOLS[currency] ?? '$'}</span>
-            <input type="number" value={salaryStr} onChange={e => setSalaryStr(e.target.value)} style={{ ...inputStyle, border: 'none', flex: 1 }} onKeyDown={e => { if (e.key === 'Enter') handleHire(); if (e.key === 'Escape') onClose(); }} />
-          </div>
-        </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Location</label>
+                <select value={country} onChange={e => setCountry(e.target.value)} style={inputStyle}>
+                  {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+                </select>
+              </div>
+              <div style={{ width: 80 }}>
+                <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Curr</label>
+                <select value={currency} onChange={e => setCurrency(e.target.value)} style={inputStyle}>
+                  {Object.keys(CURRENCY_SYMBOLS).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Monthly Salary ({CURRENCY_SYMBOLS[currency] ?? currency})</label>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--pixel-bg)', border: '2px solid var(--pixel-border)' }}>
+                <span style={{ padding: '0 8px', color: '#aaccff', fontSize: '18px' }}>{CURRENCY_SYMBOLS[currency] ?? '$'}</span>
+                <input type="number" value={salaryStr} onChange={e => setSalaryStr(e.target.value)} style={{ ...inputStyle, border: 'none', flex: 1 }} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === 'ai' && (
+          <>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>AI Provider</label>
+              <select value={aiProvider} onChange={e => setAiProvider(e.target.value)} style={inputStyle}>
+                {AI_PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+
+            {aiProvider !== 'none' && (
+              <>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Base URL</label>
+                  <input type="text" value={aiUrl} onChange={e => setAiUrl(e.target.value)} style={inputStyle} placeholder="https://api.openai.com/v1" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>Model Name</label>
+                  <input type="text" value={aiModel} onChange={e => setAiModel(e.target.value)} style={inputStyle} placeholder="gpt-4o" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, color: 'var(--pixel-text-dim)', fontSize: '15px' }}>API Key (Saved locally)</label>
+                  <input type="password" value={aiKey} onChange={e => setAiKey(e.target.value)} style={inputStyle} placeholder="sk-..." />
+                  {aiProvider === 'litellm' && <div style={{ fontSize: '13px', color: '#6688aa', marginTop: 4 }}>Master key: sk-letese-master-2026</div>}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
+                  <button onClick={handleTestConnection} disabled={testStatus === 'testing'} style={{
+                    padding: '6px 12px', fontFamily: 'monospace', fontSize: '15px', cursor: testStatus === 'testing' ? 'wait' : 'pointer',
+                    background: '#112233', color: '#aaccff', border: '2px solid #334466',
+                  }}>
+                    {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
+                  </button>
+                  <span style={{ 
+                    fontSize: '14px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    color: testStatus === 'success' ? '#00ff88' : testStatus === 'error' ? '#ff4444' : '#666688'
+                  }}>
+                    {testStatus === 'idle' ? 'Not tested' : testStatus === 'testing' ? '...' : testMsg}
+                  </span>
+                </div>
+              </>
+            )}
+          </>
+        )}
 
         <button onClick={handleHire} onMouseEnter={() => setHovered('hire')} onMouseLeave={() => setHovered(null)} style={{
-          marginTop: 4, padding: '8px', fontSize: '20px', background: hovered === 'hire' ? 'var(--pixel-agent-hover-bg)' : 'var(--pixel-agent-bg)',
+          marginTop: 8, padding: '8px', fontSize: '20px', background: hovered === 'hire' ? 'var(--pixel-agent-hover-bg)' : 'var(--pixel-agent-bg)',
           color: 'var(--pixel-agent-text)', border: '2px solid var(--pixel-agent-border)', cursor: 'pointer', fontFamily: 'monospace',
         }}>✓ Hire Agent</button>
       </div>
@@ -238,8 +380,8 @@ export function BottomToolbar({
 
 
 
-  const handleHire = (name: string, role: string, dept: string, salary: number, currency: string, country: string) => {
-    onHireAgent?.(name, role, dept, salary, currency, country);
+  const handleHire = (name: string, role: string, dept: string, salary: number, currency: string, country: string, aiConfig?: any) => {
+    onHireAgent?.(name, role, dept, salary, currency, country, aiConfig);
     setIsHireOpen(false);
   };
 

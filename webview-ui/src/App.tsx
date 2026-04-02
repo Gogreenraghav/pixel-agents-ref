@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
+import { AgentChatPanel } from './components/AgentChatPanel.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
 import type { OfficeEvent } from './components/OfficeEvents.js';
@@ -36,6 +37,15 @@ function getOfficeState(): OfficeState {
 }
 
 // ── Hired Agents Store (Paperclip) ──────────────────────────────────────────
+interface AIConfig {
+  provider: string;      // 'litellm' | 'ollama' | 'openai' | 'groq' | 'anthropic' | 'custom'
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  connected: boolean;    // last test result
+  lastTested?: string;
+}
+
 interface HiredAgent {
   id: string;
   name: string;
@@ -51,6 +61,7 @@ interface HiredAgent {
   performance: number;  // 0-100
   level: number;        // 1=Junior, 2=Mid, 3=Senior, 4=Lead
   tasksCompleted: number;
+  aiConfig?: AIConfig;  // optional AI provider config
 }
 
 interface HireHistoryEntry {
@@ -63,6 +74,7 @@ interface HireHistoryEntry {
   country: string;
   action: 'hired' | 'fired';
   date: string;
+  aiProvider?: string;
 }
 
 function loadHistoryFromStorage(): HireHistoryEntry[] {
@@ -223,12 +235,13 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const LEVEL_NAMES = ['Junior', 'Mid', 'Senior', 'Lead', 'Principal'];
 
-function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
+function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote, onChat }: {
   agent: HiredAgent;
   onClose: () => void;
   onFire: (id: string) => void;
   onPromote: (id: string) => void;
   onDemote: (id: string) => void;
+  onChat?: (id: string) => void;
 }) {
   const [confirmFire, setConfirmFire] = useState(false);
   const levelName = LEVEL_NAMES[(agent.level ?? 1) - 1] ?? 'Junior';
@@ -266,6 +279,13 @@ function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
           <span>{FLAGS[agent.country ?? 'Global'] ?? '🌍'} {agent.country ?? 'Global'}</span></div>
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Dept: </span>
           <span>{agent.dept}</span></div>
+        {agent.aiConfig && (
+          <div><span style={{ color: 'var(--pixel-text-dim)' }}>AI Brain: </span>
+            <span style={{ color: agent.aiConfig.connected ? '#00ff88' : '#ff4444' }}>
+              {agent.aiConfig.connected ? '🤖 ' : '⚠ '}{agent.aiConfig.provider}
+            </span>
+          </div>
+        )}
         <div><span style={{ color: 'var(--pixel-text-dim)' }}>Status: </span>
           <span style={{ color: agent.status === 'Working' ? '#00ff88' : agent.status === 'In Meeting' ? '#ffd700' : agent.status === 'On Break' ? '#ff9966' : '#aaaaaa' }}>
             {agent.status}</span></div>
@@ -289,6 +309,11 @@ function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote }: {
         </div>
 
         {/* Promote / Demote */}
+        {agent.aiConfig && onChat && (
+          <button onClick={() => onChat(agent.id)} style={{
+            ...btnStyle, width: '100%', marginTop: 10, marginBottom: -4, background: '#0a0a14', color: '#aaccff', borderColor: '#334466'
+          }}>💬 Chat with Agent</button>
+        )}
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <button
             onClick={() => onPromote(agent.id)}
@@ -481,6 +506,7 @@ function App() {
   const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === '1';
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [chatAgentId, setChatAgentId] = useState<string | null>(null);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
   // ── Game Economy ─────────────────────────────────────────────────────────
   const LS_BALANCE_KEY = 'pixeloffice_balance';
@@ -620,7 +646,7 @@ function App() {
   }, [currentFloor, loadFloorFile]);
   const selectedHiredAgent = hiredAgents.find(a => a.id === selectedHiredId) ?? null;
 
-  const handleHireAgent = useCallback((name: string, role: string, dept: string, salary: number, currency: string, country: string) => {
+  const handleHireAgent = useCallback((name: string, role: string, dept: string, salary: number, currency: string, country: string, aiConfig?: AIConfig) => {
     // Dispatch to Pixel Agents engine — use a numeric-friendly id
     const numericId = Date.now();
     const agentId = `hired_${numericId}`;
@@ -647,6 +673,7 @@ function App() {
       performance: 60 + Math.floor(Math.random() * 25),
       level: 1,
       tasksCompleted: 0,
+      aiConfig,
     });
   }, []);
 
@@ -754,6 +781,10 @@ function App() {
       }
     }, 30000);
     return () => clearInterval(t);
+  }, []);
+
+  const handleUpdateAgentAI = useCallback((agentId: string, aiConfig: any) => {
+    updateHiredAgent(agentId, { aiConfig });
   }, []);
 
   const handleFireAgent = useCallback((id: string) => {
@@ -904,6 +935,22 @@ function App() {
           zIndex: 40,
         }}
       />
+
+      {/* ── Agent Chat Panel ──────────────────────────────────── */}
+      {chatAgentId && (() => {
+        const chatAgent = hiredAgents.find(a => a.id === chatAgentId);
+        if (!chatAgent || !chatAgent.aiConfig) return null;
+        return (
+          <AgentChatPanel
+            agentId={chatAgent.id}
+            agentName={chatAgent.name}
+            agentRole={chatAgent.role}
+            aiConfig={chatAgent.aiConfig}
+            onClose={() => setChatAgentId(null)}
+            onConfigUpdate={(cfg) => handleUpdateAgentAI(chatAgentId, cfg)}
+          />
+        );
+      })()}
 
       {/* ── Company Balance HUD ─────────────────────────────── */}
       {!isEmbedMode && (
