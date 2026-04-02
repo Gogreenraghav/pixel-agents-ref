@@ -630,10 +630,26 @@ function App() {
   }, []);
 
   // Always reload floor-0 after assets are ready (fixes washroom not showing on refresh)
+  // Also re-spawn all persisted hired agents into the pixel engine
   useEffect(() => {
     if (!layoutReady) return;
-    // Small delay to ensure browserMock layout has settled
-    const t = setTimeout(() => { void loadFloorFile(urlFloorParam || 0); }, 500);
+    const t = setTimeout(() => {
+      void loadFloorFile(urlFloorParam || 0);
+      // Re-create pixel characters for all agents loaded from localStorage
+      hiredAgentsStore.forEach(agent => {
+        if (agent.pixelCharId !== undefined) {
+          window.dispatchEvent(new MessageEvent('message', {
+            data: {
+              type: 'agentCreated',
+              id: agent.pixelCharId,
+              folderName: `${agent.name} (${agent.role})`,
+              palette: Math.floor(Math.random() * 6),
+              hueShift: Math.floor(Math.random() * 360),
+            }
+          }));
+        }
+      });
+    }, 600);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutReady]);
