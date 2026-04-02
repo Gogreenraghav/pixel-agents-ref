@@ -11,6 +11,7 @@ interface BottomToolbarProps {
   statsOpen?: boolean;
   onScheduleClick?: () => void;
   scheduleOpen?: boolean;
+  onDashboardClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -353,6 +354,7 @@ export function BottomToolbar({
   statsOpen,
   onScheduleClick,
   scheduleOpen,
+  onDashboardClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -434,6 +436,20 @@ export function BottomToolbar({
           title="View office stats"
         >
           📊 Stats
+        </button>
+
+        {/* DASHBOARD button */}
+        <button
+          onClick={onDashboardClick}
+          onMouseEnter={() => setHovered('dashboard')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background: hovered === 'dashboard' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Company Dashboard"
+        >
+          🏢 Dashboard
         </button>
 
         {/* SCHEDULE button */}
