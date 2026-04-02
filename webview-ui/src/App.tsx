@@ -1063,6 +1063,7 @@ function App() {
         statsOpen={statsOpen}
         onScheduleClick={() => setScheduleOpen(v => !v)}
         scheduleOpen={scheduleOpen}
+        onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 
       {editor.isEditMode && editor.isDirty && (
