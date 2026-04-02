@@ -986,6 +986,8 @@ function App() {
         onFloorChange={handleFloorChange}
         onStatsClick={() => setStatsOpen(v => !v)}
         statsOpen={statsOpen}
+        onScheduleClick={() => setScheduleOpen(v => !v)}
+        scheduleOpen={scheduleOpen}
       /> }
 
       {editor.isEditMode && editor.isDirty && (
