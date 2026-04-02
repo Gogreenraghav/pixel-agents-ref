@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OrgChart } from './OrgChart.js';
+import { CEOInbox } from './CEOInbox.js';
 
 interface HiredAgent {
   id: string; name: string; role: string; dept: string; status: string;
@@ -297,7 +298,7 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
 }
 
 export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClose }: Props) {
-  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'|'org'>('tasks');
+  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'|'org'|'inbox'>('tasks');
   const tabs = [
     { key: 'tasks' as const, label: '📋 Task Board' },
     { key: 'folders' as const, label: '📁 Output Folders' },
@@ -305,6 +306,7 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
     { key: 'analytics' as const, label: '📈 Analytics' },
     { key: 'team' as const, label: '👥 Team' },
     { key: 'org' as const, label: '🗂️ Org Chart' },
+    { key: 'inbox' as const, label: '👑 CEO Inbox' },
   ];
 
   return (
@@ -344,6 +346,7 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
         {tab === 'analytics' && <Analytics agents={agents} companyBalance={companyBalance} companyRevenue={companyRevenue} />}
         {tab === 'team'      && <TeamGrid agents={agents} />}
         {tab === 'org'       && <OrgChart agents={agents} />}
+        {tab === 'inbox'     && <CEOInbox agents={agents} />}
       </div>
     </div>
   );
