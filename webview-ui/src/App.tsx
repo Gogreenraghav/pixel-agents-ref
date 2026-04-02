@@ -985,6 +985,7 @@ function App() {
           onDemote={handleDemoteAgent}
           onClose={() => setSelectedHiredId(null)}
           onFire={handleFireAgent}
+          onChat={(id) => { setSelectedHiredId(null); setChatAgentId(id); }}
         />
       )}
 
