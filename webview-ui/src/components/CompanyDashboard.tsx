@@ -66,10 +66,10 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const cols: Array<{ key: Task['status']; label: string; color: string; textColor: string }> = [
-    { key: 'todo', label: '📌 TO DO', color: '#1a2a4a', textColor: '#66aaff' },
-    { key: 'running', label: '⚡ RUNNING', color: '#2a1a00', textColor: '#ffaa33' },
-    { key: 'done', label: '✅ DONE', color: '#0a2a14', textColor: '#33ff88' },
-    { key: 'failed', label: '❌ FAILED', color: '#2a0a0a', textColor: '#ff5555' },
+    { key: 'todo', label: '📌 TO DO', color: '#0d1a33', textColor: '#44aaff' },
+    { key: 'running', label: '⚡ RUNNING', color: '#1a0e00', textColor: '#ffbb44' },
+    { key: 'done', label: '✅ DONE', color: '#061a0d', textColor: '#33ffaa' },
+    { key: 'failed', label: '❌ FAILED', color: '#1a0606', textColor: '#ff6666' },
   ];
 
   const inputStyle: React.CSSProperties = {
@@ -348,9 +348,9 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
               </div>
               <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
               <div style={{ fontSize: '18px', color: '#88eeff', fontWeight: 'bold', marginBottom: 2 }}>{a.role}</div>
-              <div style={{ fontSize: '16px', color: '#667788', marginBottom: 10 }}>{a.dept}</div>
+              <div style={{ fontSize: '17px', color: '#88aabb', fontWeight: 'bold', marginBottom: 10 }}>{a.dept}</div>
               {a.aiConfig && (
-                <div style={{ fontSize: '15px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', marginBottom: 10 }}>
+                <div style={{ fontSize: '17px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', fontWeight: 'bold', marginBottom: 10 }}>
                   🤖 {a.aiConfig.provider} · {a.aiConfig.model}
                 </div>
               )}
