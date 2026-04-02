@@ -124,9 +124,9 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
               {tasks.filter(t => t.status === col.key).map(task => (
                 <div key={task.id} style={{ background: '#0a0a14', border: '1px solid #222244', padding: '8px 10px', cursor: 'pointer' }}
                   onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
-                  <div style={{ fontSize: '15px', color: 'var(--pixel-agent-text)', marginBottom: 4 }}>[{task.type}]</div>
-                  <div style={{ fontSize: '17px', color: 'var(--pixel-text)' }}>{task.title}</div>
-                  <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginTop: 4 }}>{task.agentName}</div>
+                  <div style={{ fontSize: '16px', color: 'var(--pixel-agent-text)', marginBottom: 6 }}>[{task.type}]</div>
+                  <div style={{ fontSize: '20px', color: 'var(--pixel-text)', fontWeight: 'bold' }}>{task.title}</div>
+                  <div style={{ fontSize: '17px', color: 'var(--pixel-text-dim)', marginTop: 6 }}>{task.agentName}</div>
                   {expandedId === task.id && task.output && (
                     <div style={{ marginTop: 8, padding: '6px 8px', background: '#0a1a0a', border: '1px solid #1a5a2a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.5 }}>
                       {task.output}
@@ -282,15 +282,15 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
           { label: '✅ Tasks Done', value: agents.reduce((s, a) => s + (a.tasksCompleted ?? 0), 0), color: '#ff88cc' },
         ].map(kpi => (
           <div key={kpi.label} style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
-            <div style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', marginBottom: 8 }}>{kpi.label}</div>
-            <div style={{ fontSize: '26px', fontWeight: 'bold', color: kpi.color as string }}>{kpi.value}</div>
+            <div style={{ fontSize: '18px', color: 'var(--pixel-text-dim)', marginBottom: 10 }}>{kpi.label}</div>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: kpi.color as string }}>{kpi.value}</div>
           </div>
         ))}
       </div>
 
       {/* Performance bar chart */}
       <div style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
-        <div style={{ fontSize: '18px', color: 'var(--pixel-agent-text)', marginBottom: 14 }}>📊 Agent Performance</div>
+        <div style={{ fontSize: '20px', color: 'var(--pixel-agent-text)', marginBottom: 16, fontWeight: 'bold' }}>📊 Agent Performance</div>
         {agents.length === 0 && <div style={{ color: '#334455', fontSize: '14px' }}>No agents hired</div>}
         {agents.map(a => (
           <div key={a.id} style={{ marginBottom: 10 }}>
@@ -298,7 +298,7 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
               <span style={{ fontSize: '16px', color: 'var(--pixel-text-dim)' }}>{a.name} ({a.role})</span>
               <span style={{ fontSize: '15px', color: 'var(--pixel-agent-text)' }}>{a.performance}%</span>
             </div>
-            <div style={{ height: 14, background: '#111133', border: '1px solid #222244' }}>
+            <div style={{ height: 20, background: 'var(--pixel-bg)', border: '2px solid var(--pixel-border)' }}>
               <div style={{
                 height: '100%', width: `${(a.performance / maxPerf) * 100}%`,
                 background: a.performance >= 80 ? '#00ff88' : a.performance >= 50 ? '#ffaa44' : '#ff4444',
@@ -310,7 +310,7 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
 
       {/* Dept distribution */}
       <div style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
-        <div style={{ fontSize: '18px', color: 'var(--pixel-agent-text)', marginBottom: 14 }}>🏢 Dept Distribution</div>
+        <div style={{ fontSize: '20px', color: 'var(--pixel-agent-text)', marginBottom: 16, fontWeight: 'bold' }}>🏢 Dept Distribution</div>
         {Object.entries(deptCount).map(([dept, count]) => (
           <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <span style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', width: 120 }}>{dept}</span>
@@ -401,7 +401,7 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
         <span style={{ fontSize: '28px' }}>🏢</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--pixel-agent-text)', letterSpacing: 1 }}>COMPANY DASHBOARD</div>
-          <div style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', marginTop: 2 }}>
+          <div style={{ fontSize: '20px', color: 'var(--pixel-text)', marginTop: 4, fontWeight: 'bold' }}>
             👥 {agents.length} agents &nbsp;·&nbsp; 💰 ${companyBalance.toLocaleString()} &nbsp;·&nbsp; 📈 +${Math.round(companyRevenue / 30).toLocaleString()}/day
           </div>
         </div>
