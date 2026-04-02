@@ -73,8 +73,8 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   ];
 
   const inputStyle: React.CSSProperties = {
-    background: '#0a0a14', color: '#ccd', border: '2px solid #334466',
-    fontFamily: 'monospace', fontSize: '14px', padding: '5px 8px', width: '100%', boxSizing: 'border-box',
+    background: 'var(--pixel-bg)', color: 'var(--pixel-text)', border: '2px solid var(--pixel-border)',
+    fontFamily: 'monospace', fontSize: '17px', padding: '7px 10px', width: '100%', boxSizing: 'border-box',
   };
 
   const addTask = () => {
@@ -93,8 +93,8 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#aaccff', fontSize: '16px' }}>Total: {tasks.length} tasks</span>
         <button onClick={() => setShowNew(v => !v)} style={{
-          padding: '6px 14px', fontFamily: 'monospace', fontSize: '15px',
-          background: '#112233', color: '#aaccff', border: '2px solid #334466', cursor: 'pointer',
+          padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px',
+          background: 'var(--pixel-btn-bg)', color: 'var(--pixel-agent-text)', border: '2px solid var(--pixel-agent-border)', cursor: 'pointer',
         }}>+ New Task</button>
       </div>
 
@@ -124,11 +124,11 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
               {tasks.filter(t => t.status === col.key).map(task => (
                 <div key={task.id} style={{ background: '#0a0a14', border: '1px solid #222244', padding: '8px 10px', cursor: 'pointer' }}
                   onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}>
-                  <div style={{ fontSize: '13px', color: '#aaccff', marginBottom: 4 }}>[{task.type}]</div>
-                  <div style={{ fontSize: '14px', color: '#ddeeff' }}>{task.title}</div>
-                  <div style={{ fontSize: '12px', color: '#556677', marginTop: 4 }}>{task.agentName}</div>
+                  <div style={{ fontSize: '15px', color: 'var(--pixel-agent-text)', marginBottom: 4 }}>[{task.type}]</div>
+                  <div style={{ fontSize: '17px', color: 'var(--pixel-text)' }}>{task.title}</div>
+                  <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginTop: 4 }}>{task.agentName}</div>
                   {expandedId === task.id && task.output && (
-                    <div style={{ marginTop: 8, padding: '6px 8px', background: '#0a1a0a', border: '1px solid #1a5a2a', fontSize: '13px', color: '#aaffaa', lineHeight: 1.5 }}>
+                    <div style={{ marginTop: 8, padding: '6px 8px', background: '#0a1a0a', border: '1px solid #1a5a2a', fontSize: '16px', color: '#aaffaa', lineHeight: 1.5 }}>
                       {task.output}
                     </div>
                   )}
@@ -159,7 +159,7 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
     <div style={{ display: 'flex', height: '100%', gap: 0 }}>
       {/* Sidebar */}
       <div style={{ width: 180, borderRight: '2px solid #222244', overflowY: 'auto', background: '#080812' }}>
-        <div style={{ padding: '8px 10px', borderBottom: '1px solid #222244', fontSize: '13px', color: '#556677' }}>AGENTS</div>
+        <div style={{ padding: '8px 10px', borderBottom: '1px solid #222244', fontSize: '15px', color: 'var(--pixel-text-dim)' }}>AGENTS</div>
         {agents.length === 0 && <div style={{ padding: '12px', color: '#334455', fontSize: '13px' }}>No agents hired yet</div>}
         {agents.map(a => (
           <div key={a.id} onClick={() => { setSelectedAgent(a.id); setPreviewFile(null); }} style={{
@@ -167,8 +167,8 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
             background: selectedAgent === a.id ? '#112233' : 'transparent',
             borderLeft: selectedAgent === a.id ? '3px solid #2255aa' : '3px solid transparent',
           }}>
-            <div style={{ fontSize: '14px', color: '#aaccff' }}>📁 {a.name}</div>
-            <div style={{ fontSize: '12px', color: '#445566' }}>{a.role}</div>
+            <div style={{ fontSize: '17px', color: 'var(--pixel-agent-text)' }}>📁 {a.name}</div>
+            <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)' }}>{a.role}</div>
           </div>
         ))}
       </div>
@@ -177,7 +177,7 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {agent ? (
           <>
-            <div style={{ padding: '8px 14px', borderBottom: '1px solid #222244', fontSize: '14px', color: '#aaccff', background: '#0d0d1a' }}>
+            <div style={{ padding: '8px 14px', borderBottom: '1px solid #222244', fontSize: '17px', color: 'var(--pixel-agent-text)', background: '#0d0d1a' }}>
               📁 {agent.name} / {agent.role} — {files.length} files
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -185,8 +185,8 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
                 <div key={i} style={{ background: '#0a0a14', border: '1px solid #222244', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: '20px' }}>📄</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', color: '#ddeeff' }}>{f.name}</div>
-                    <div style={{ fontSize: '12px', color: '#445566', marginTop: 2 }}>{f.date} · {f.size}</div>
+                    <div style={{ fontSize: '17px', color: 'var(--pixel-text)' }}>{f.name}</div>
+                    <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginTop: 2 }}>{f.date} · {f.size}</div>
                   </div>
                   <button onClick={() => setPreviewFile(previewFile === f.name ? null : f.name)} style={{
                     padding: '4px 10px', fontFamily: 'monospace', fontSize: '13px',
@@ -205,7 +205,7 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
               {previewFile && (
                 <div style={{ background: '#080f08', border: '2px solid #1a5a2a', padding: '12px 14px', marginTop: 4 }}>
                   <div style={{ fontSize: '13px', color: '#557755', marginBottom: 8 }}>── {previewFile} ──</div>
-                  <pre style={{ margin: 0, fontSize: '13px', color: '#aaffaa', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <pre style={{ margin: 0, fontSize: '16px', color: '#aaffaa', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {files.find(f => f.name === previewFile)?.content}
                   </pre>
                 </div>
@@ -229,7 +229,7 @@ function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%', overflowY: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '15px', color: '#aaccff' }}>📅 Daily Standup — {today}</div>
+        <div style={{ fontSize: '18px', color: 'var(--pixel-agent-text)' }}>📅 Daily Standup — {today}</div>
         <button style={{
           padding: '6px 14px', fontFamily: 'monospace', fontSize: '15px',
           background: '#112211', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer',
@@ -239,7 +239,7 @@ function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
       {/* Header row */}
       <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 2, background: '#111133' }}>
         {['Agent', 'Yesterday', 'Today', 'Blockers'].map(h => (
-          <div key={h} style={{ padding: '8px 12px', fontSize: '13px', color: '#6677aa', fontWeight: 'bold', background: '#0d0d1a' }}>{h}</div>
+          <div key={h} style={{ padding: '8px 12px', fontSize: '16px', color: 'var(--pixel-text-dim)', fontWeight: 'bold', background: '#0d0d1a' }}>{h}</div>
         ))}
       </div>
 
@@ -250,11 +250,11 @@ function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
       })) : entries).map((e, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 2, background: i % 2 === 0 ? '#0a0a14' : '#080810' }}>
           <div style={{ padding: '10px 12px', borderRight: '1px solid #222244' }}>
-            <div style={{ fontSize: '14px', color: '#aaccff' }}>{e.agentName}</div>
-            <div style={{ fontSize: '12px', color: '#445566' }}>{e.role}</div>
+            <div style={{ fontSize: '17px', color: 'var(--pixel-agent-text)' }}>{e.agentName}</div>
+            <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)' }}>{e.role}</div>
           </div>
-          <div style={{ padding: '10px 12px', fontSize: '13px', color: '#889999', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.yesterday}</div>
-          <div style={{ padding: '10px 12px', fontSize: '13px', color: '#aaffaa', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.today}</div>
+          <div style={{ padding: '10px 12px', fontSize: '16px', color: 'var(--pixel-text-dim)', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.yesterday}</div>
+          <div style={{ padding: '10px 12px', fontSize: '16px', color: '#aaffaa', borderRight: '1px solid #222244', lineHeight: 1.5 }}>{e.today}</div>
           <div style={{ padding: '10px 12px', fontSize: '13px', color: e.blockers === 'None' ? '#445566' : '#ffaa44', lineHeight: 1.5 }}>{e.blockers}</div>
         </div>
       ))}
@@ -281,22 +281,22 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
           { label: '👥 Headcount', value: agents.length, color: '#ffdd44' },
           { label: '✅ Tasks Done', value: agents.reduce((s, a) => s + (a.tasksCompleted ?? 0), 0), color: '#ff88cc' },
         ].map(kpi => (
-          <div key={kpi.label} style={{ background: '#0a0a14', border: '2px solid #222244', padding: '14px 16px' }}>
-            <div style={{ fontSize: '13px', color: '#445566', marginBottom: 6 }}>{kpi.label}</div>
-            <div style={{ fontSize: '22px', fontWeight: 'bold', color: kpi.color as string }}>{kpi.value}</div>
+          <div key={kpi.label} style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
+            <div style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', marginBottom: 8 }}>{kpi.label}</div>
+            <div style={{ fontSize: '26px', fontWeight: 'bold', color: kpi.color as string }}>{kpi.value}</div>
           </div>
         ))}
       </div>
 
       {/* Performance bar chart */}
-      <div style={{ background: '#0a0a14', border: '2px solid #222244', padding: '14px 16px' }}>
-        <div style={{ fontSize: '15px', color: '#aaccff', marginBottom: 14 }}>📊 Agent Performance</div>
+      <div style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
+        <div style={{ fontSize: '18px', color: 'var(--pixel-agent-text)', marginBottom: 14 }}>📊 Agent Performance</div>
         {agents.length === 0 && <div style={{ color: '#334455', fontSize: '14px' }}>No agents hired</div>}
         {agents.map(a => (
           <div key={a.id} style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: '13px', color: '#889999' }}>{a.name} ({a.role})</span>
-              <span style={{ fontSize: '13px', color: '#aaccff' }}>{a.performance}%</span>
+              <span style={{ fontSize: '16px', color: 'var(--pixel-text-dim)' }}>{a.name} ({a.role})</span>
+              <span style={{ fontSize: '15px', color: 'var(--pixel-agent-text)' }}>{a.performance}%</span>
             </div>
             <div style={{ height: 14, background: '#111133', border: '1px solid #222244' }}>
               <div style={{
@@ -309,15 +309,15 @@ function Analytics({ agents, companyBalance, companyRevenue }: { agents: HiredAg
       </div>
 
       {/* Dept distribution */}
-      <div style={{ background: '#0a0a14', border: '2px solid #222244', padding: '14px 16px' }}>
-        <div style={{ fontSize: '15px', color: '#aaccff', marginBottom: 14 }}>🏢 Dept Distribution</div>
+      <div style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
+        <div style={{ fontSize: '18px', color: 'var(--pixel-agent-text)', marginBottom: 14 }}>🏢 Dept Distribution</div>
         {Object.entries(deptCount).map(([dept, count]) => (
           <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span style={{ fontSize: '13px', color: '#889999', width: 120 }}>{dept}</span>
+            <span style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', width: 120 }}>{dept}</span>
             <div style={{ flex: 1, height: 12, background: '#111133', border: '1px solid #222244' }}>
               <div style={{ height: '100%', width: `${(count / agents.length) * 100}%`, background: '#2255aa' }} />
             </div>
-            <span style={{ fontSize: '13px', color: '#aaccff', width: 20 }}>{count}</span>
+            <span style={{ fontSize: '15px', color: 'var(--pixel-agent-text)', width: 20 }}>{count}</span>
           </div>
         ))}
         {Object.keys(deptCount).length === 0 && <div style={{ color: '#334455', fontSize: '14px' }}>No agents hired</div>}
@@ -339,18 +339,18 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
         {agents.map(a => {
           const statusColor = a.status === 'Working' ? '#00ff88' : a.status === 'In Meeting' ? '#ffaa44' : '#6677aa';
           return (
-            <div key={a.id} style={{ background: '#0a0a14', border: '2px solid #222244', padding: '14px 16px' }}>
+            <div key={a.id} style={{ background: 'var(--pixel-agent-bg)', border: '2px solid var(--pixel-agent-border)', padding: '16px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ fontSize: '28px' }}>👤</div>
                 <div style={{ fontSize: '11px', padding: '2px 8px', background: statusColor + '22', border: `1px solid ${statusColor}`, color: statusColor }}>
                   {a.status}
                 </div>
               </div>
-              <div style={{ fontSize: '16px', color: '#ddeeff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
-              <div style={{ fontSize: '13px', color: '#6699cc', marginBottom: 2 }}>{a.role}</div>
-              <div style={{ fontSize: '12px', color: '#445566', marginBottom: 10 }}>{a.dept}</div>
+              <div style={{ fontSize: '18px', color: 'var(--pixel-text)', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
+              <div style={{ fontSize: '16px', color: 'var(--pixel-agent-text)', marginBottom: 2 }}>{a.role}</div>
+              <div style={{ fontSize: '15px', color: 'var(--pixel-text-dim)', marginBottom: 10 }}>{a.dept}</div>
               {a.aiConfig && (
-                <div style={{ fontSize: '12px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', marginBottom: 10 }}>
+                <div style={{ fontSize: '15px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', marginBottom: 10 }}>
                   🤖 {a.aiConfig.provider} · {a.aiConfig.model}
                 </div>
               )}
@@ -388,43 +388,44 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 400,
-      background: '#06060f',
+      background: 'var(--pixel-bg)',
       display: 'flex', flexDirection: 'column',
       fontFamily: 'monospace',
     }}>
       {/* Header */}
       <div style={{
-        background: '#0a0a1a', borderBottom: '2px solid #222244',
+        background: 'var(--pixel-active-bg)', borderBottom: '2px solid var(--pixel-border)',
         padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0,
+        boxShadow: 'var(--pixel-shadow)',
       }}>
-        <span style={{ fontSize: '22px' }}>🏢</span>
+        <span style={{ fontSize: '28px' }}>🏢</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#aaccff' }}>Company Dashboard</div>
-          <div style={{ fontSize: '13px', color: '#445566' }}>
-            {agents.length} agents · 💰 ${companyBalance.toLocaleString()} · 📈 +${Math.round(companyRevenue / 30).toLocaleString()}/day
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--pixel-agent-text)', letterSpacing: 1 }}>COMPANY DASHBOARD</div>
+          <div style={{ fontSize: '16px', color: 'var(--pixel-text-dim)', marginTop: 2 }}>
+            👥 {agents.length} agents &nbsp;·&nbsp; 💰 ${companyBalance.toLocaleString()} &nbsp;·&nbsp; 📈 +${Math.round(companyRevenue / 30).toLocaleString()}/day
           </div>
         </div>
         <button onClick={onClose} style={{
-          background: '#1a0a0a', border: '2px solid #553333', color: '#ff6666',
-          fontFamily: 'monospace', fontSize: '16px', padding: '6px 14px', cursor: 'pointer',
+          background: 'var(--pixel-btn-bg)', border: '2px solid var(--pixel-border)', color: 'var(--pixel-text)',
+          fontFamily: 'monospace', fontSize: '18px', padding: '8px 18px', cursor: 'pointer',
         }}>✕ Close</button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #222244', background: '#080810', flexShrink: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--pixel-border)', background: 'var(--pixel-bg)', flexShrink: 0 }}>
         {tabs.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-            padding: '10px 20px', fontFamily: 'monospace', fontSize: '15px',
-            background: activeTab === tab.key ? '#0d0d1a' : 'transparent',
-            color: activeTab === tab.key ? '#aaccff' : '#445566',
-            border: 'none', borderBottom: activeTab === tab.key ? '2px solid #4488cc' : '2px solid transparent',
-            cursor: 'pointer',
+            padding: '12px 24px', fontFamily: 'monospace', fontSize: '18px',
+            background: activeTab === tab.key ? 'var(--pixel-active-bg)' : 'transparent',
+            color: activeTab === tab.key ? 'var(--pixel-agent-text)' : 'var(--pixel-text-dim)',
+            border: 'none', borderBottom: activeTab === tab.key ? '3px solid var(--pixel-agent-border)' : '3px solid transparent',
+            cursor: 'pointer', fontWeight: activeTab === tab.key ? 'bold' : 'normal',
           }}>{tab.label}</button>
         ))}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', padding: 16 }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: 20, background: 'var(--pixel-bg)' }}>
         {activeTab === 'tasks' && <TaskBoard agents={agents} />}
         {activeTab === 'folders' && <OutputFolders agents={agents} />}
         {activeTab === 'scrum' && <ScrumBoard agents={agents} />}
