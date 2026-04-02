@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { OrgChart } from './OrgChart.js';
 
 interface HiredAgent {
   id: string; name: string; role: string; dept: string; status: string;
@@ -296,13 +297,14 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
 }
 
 export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClose }: Props) {
-  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'>('tasks');
+  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'|'org'>('tasks');
   const tabs = [
     { key: 'tasks' as const, label: '📋 Task Board' },
     { key: 'folders' as const, label: '📁 Output Folders' },
     { key: 'scrum' as const, label: '🧑‍💼 Scrum' },
     { key: 'analytics' as const, label: '📈 Analytics' },
     { key: 'team' as const, label: '👥 Team' },
+    { key: 'org' as const, label: '🗂️ Org Chart' },
   ];
 
   return (
@@ -341,6 +343,7 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
         {tab === 'scrum'     && <ScrumBoard agents={agents} />}
         {tab === 'analytics' && <Analytics agents={agents} companyBalance={companyBalance} companyRevenue={companyRevenue} />}
         {tab === 'team'      && <TeamGrid agents={agents} />}
+        {tab === 'org'       && <OrgChart agents={agents} />}
       </div>
     </div>
   );
