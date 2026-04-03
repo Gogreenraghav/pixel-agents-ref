@@ -159,14 +159,36 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   const generateTasks = async () => {
     if (!activeGoal || !ceo) return;
     setRunningId('generating');
-    const prompt = `Goal: ${activeGoal.title}\nDescription: ${activeGoal.desc}\nAgents: ${agents.map(a => `${a.name} (${a.role})`).join(', ')}\n\nBreak this goal into 5 tasks. Output as a JSON list of objects: { title, type, targetAgentId, priority }. Use only valid agent IDs from list: ${agents.map(a => a.id).join(', ')}. JSON only.`;
+
+    // Build agent brief with memory + skills for smart CEO assignment
+    const agentBrief = agents.map(a => {
+      const mem = loadAgentMemory(a.id);
+      const skills = loadAgentSkills(a.id);
+      const totalXP = Object.values(skills.xp).reduce((s, v) => s + v, 0);
+      const topSkills = Object.entries(skills.xp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([k, v]) => `${k}(${v}XP)`).join(', ');
+      const recentTasks = mem?.entries.slice(0, 3).map(e => e.taskTitle).join(', ') || 'None';
+      return `${a.name} (${a.role}) — Level ${skills.level}, ${totalXP}XP, Top: ${topSkills || 'None'}, Recent: ${recentTasks}, AI: ${a.aiConfig ? 'YES' : 'NO'}`;
+    }).join('\n');
+
+    const prompt = `You are the CEO. Assign the following company goal to your team of agents.
+
+GOAL: ${activeGoal.title}
+DESCRIPTION: ${activeGoal.desc}
+
+TEAM (with their memory, skills, and recent work):
+${agentBrief}
+
+IMPORTANT: Only assign tasks to agents marked "AI: YES" (agents with AI brains).
+For each task, output JSON: { title, type, targetAgentId, priority }.
+Keep title short (under 60 chars). Pick the best agent for each task based on their skills/memory.
+Output ONLY valid JSON array (no markdown, no explanation). Example: [{"title":"Build API","type":"Code","targetAgentId":"abc123","priority":"high"}]`;
     
     try {
       const cfg = ceo.aiConfig as any;
       const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
-        body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 500 }),
+        body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 600 }),
       });
       const data = await res.json();
       const txt = data.choices?.[0]?.message?.content ?? '[]';
