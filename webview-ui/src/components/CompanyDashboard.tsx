@@ -242,39 +242,119 @@ function OutputFolders({ agents }: { agents: HiredAgent[] }) {
   );
 }
 
+const LS_SCRUM = 'pixeloffice_scrum_logs';
+interface ScrumRow { agentName: string; role: string; yesterday: string; today: string; blockers: string; }
+interface ScrumLog { date: string; rows: ScrumRow[]; summary?: string; }
+
+function loadScrumLogs(): ScrumLog[] {
+  try { return JSON.parse(localStorage.getItem(LS_SCRUM) ?? '[]'); } catch { return []; }
+}
+
 function ScrumBoard({ agents }: { agents: HiredAgent[] }) {
+  const [logs, setLogs] = useState<ScrumLog[]>(loadScrumLogs);
+  const [running, setRunning] = useState(false);
+  const [activeLog, setActiveLog] = useState<ScrumLog | null>(logs[0] ?? null);
   const today = new Date().toLocaleDateString();
-  const rows = agents.length > 0
-    ? agents.map(a => ({ agentName: a.name, role: a.role, yesterday: 'Completed assigned tasks', today: 'Working on new assignments', blockers: 'None' }))
-    : [
-        { agentName: 'Ravi', role: 'Developer', yesterday: 'Completed DB schema', today: 'Building login API', blockers: 'None' },
-        { agentName: 'Priya', role: 'Designer', yesterday: 'Wireframes done', today: 'Homepage mockup', blockers: 'Waiting for copy' },
-        { agentName: 'Amit', role: 'Analyst', yesterday: 'Competitor research', today: 'Market analysis', blockers: 'None' },
-      ];
+  const ceo = agents.find(a => a.role === 'CEO');
+
+  const runScrum = async () => {
+    if (running || agents.length === 0) return;
+    setRunning(true);
+    const rows: ScrumRow[] = [];
+
+    // Each agent generates their standup via AI (or placeholder if no AI)
+    for (const agent of agents) {
+      if (agent.aiConfig) {
+        try {
+          const cfg = agent.aiConfig as any;
+          const prompt = `You are ${agent.name}, a ${agent.role}. Give a brief daily standup in JSON format with keys: yesterday, today, blockers. Keep each under 10 words. JSON only, no markdown.`;
+          const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+            body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 100 }),
+          });
+          const data = await res.json();
+          const txt = data.choices?.[0]?.message?.content ?? '{}';
+          const parsed = JSON.parse(txt.replace(/```json|```/g, '').trim());
+          rows.push({ agentName: agent.name, role: agent.role, yesterday: parsed.yesterday ?? 'Completed tasks', today: parsed.today ?? 'Continuing work', blockers: parsed.blockers ?? 'None' });
+        } catch {
+          rows.push({ agentName: agent.name, role: agent.role, yesterday: 'Completed tasks', today: 'Continuing work', blockers: 'None' });
+        }
+      } else {
+        rows.push({ agentName: agent.name, role: agent.role, yesterday: 'Completed assigned work', today: 'Working on new tasks', blockers: 'None' });
+      }
+    }
+
+    // CEO summarizes if AI enabled
+    let summary = '';
+    if (ceo?.aiConfig) {
+      try {
+        const cfg = ceo.aiConfig as any;
+        const standupText = rows.map(r => `${r.agentName} (${r.role}): Yesterday: ${r.yesterday}. Today: ${r.today}. Blockers: ${r.blockers}`).join('\n');
+        const prompt = `You are ${ceo.name}, CEO. Summarize this team standup in 2-3 sentences and list any action items:\n${standupText}`;
+        const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+          body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 150 }),
+        });
+        const data = await res.json();
+        summary = data.choices?.[0]?.message?.content ?? '';
+      } catch { summary = 'CEO summary unavailable.'; }
+    }
+
+    const newLog: ScrumLog = { date: today, rows, summary };
+    const newLogs = [newLog, ...logs.slice(0, 9)];
+    setLogs(newLogs);
+    setActiveLog(newLog);
+    try { localStorage.setItem(LS_SCRUM, JSON.stringify(newLogs)); } catch {}
+    setRunning(false);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%', overflowY: 'auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>📅 Daily Standup — {today}</div>
-        <button style={{ padding: '10px 20px', fontFamily: 'monospace', fontSize: '19px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>▶ Run Scrum (AI)</button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {logs.length > 1 && (
+            <select onChange={e => setActiveLog(logs[parseInt(e.target.value)])} style={{ background: '#0a0a14', color: '#aaddff', border: '2px solid #334466', fontFamily: 'monospace', fontSize: '15px', padding: '6px' }}>
+              {logs.map((l, i) => <option key={i} value={i}>📅 {l.date}</option>)}
+            </select>
+          )}
+          <button onClick={runScrum} disabled={running || agents.length === 0} style={{ padding: '10px 20px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: running ? '#0a0a0a' : '#0a1a0a', color: running ? '#334455' : '#00ff88', border: '2px solid', borderColor: running ? '#222233' : '#00ff88', cursor: running ? 'wait' : 'pointer' }}>
+            {running ? '⏳ Running Scrum...' : '▶ Run Scrum (AI)'}
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr', gap: 2, background: '#0a0a18', border: '2px solid #223355' }}>
-        {['Agent', 'Yesterday', 'Today', 'Blockers'].map(h => (
-          <div key={h} style={{ padding: '12px 16px', fontSize: '20px', color: '#66ddff', fontWeight: 'bold', background: '#0a0a18', letterSpacing: 1, borderBottom: '2px solid #223355' }}>{h}</div>
-        ))}
-        {rows.map((e, i) => (
-          <>
-            <div key={`a${i}`} style={{ padding: '14px 16px', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355' }}>
-              <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>{e.agentName}</div>
-              <div style={{ fontSize: '18px', color: '#88aacc', fontWeight: 'bold', marginTop: 4 }}>{e.role}</div>
+      {agents.length === 0 && <div style={{ color: '#667788', fontSize: '17px', padding: 20 }}>No agents hired. Hire agents to run scrum.</div>}
+
+      {activeLog && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 1fr', background: '#0a0a18', border: '2px solid #223355' }}>
+            {['Agent', 'Yesterday', 'Today', 'Blockers'].map(h => (
+              <div key={h} style={{ padding: '12px 16px', fontSize: '20px', color: '#66ddff', fontWeight: 'bold', background: '#0a0a18', borderBottom: '2px solid #223355' }}>{h}</div>
+            ))}
+            {activeLog.rows.map((e, i) => (
+              <>
+                <div key={`a${i}`} style={{ padding: '14px 16px', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355' }}>
+                  <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>{e.agentName}</div>
+                  <div style={{ fontSize: '17px', color: '#88aacc', fontWeight: 'bold', marginTop: 4 }}>{e.role}</div>
+                </div>
+                <div key={`y${i}`} style={{ padding: '14px 16px', fontSize: '18px', color: '#99ccdd', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355', lineHeight: 1.6 }}>{e.yesterday}</div>
+                <div key={`t${i}`} style={{ padding: '14px 16px', fontSize: '18px', color: '#88ffbb', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355', lineHeight: 1.6 }}>{e.today}</div>
+                <div key={`b${i}`} style={{ padding: '14px 16px', fontSize: '20px', fontWeight: 'bold', color: e.blockers === 'None' ? '#55ccee' : '#ffaa44', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', lineHeight: 1.6 }}>{e.blockers}</div>
+              </>
+            ))}
+          </div>
+
+          {activeLog.summary && (
+            <div style={{ background: '#0a1a0a', border: '2px solid #1a7a3a', padding: '16px' }}>
+              <div style={{ fontSize: '18px', color: '#ffd700', fontWeight: 'bold', marginBottom: 10 }}>👑 CEO Summary:</div>
+              <div style={{ fontSize: '17px', color: '#aaffaa', lineHeight: 1.7 }}>{activeLog.summary}</div>
             </div>
-            <div key={`y${i}`} style={{ padding: '14px 16px', fontSize: '18px', color: '#99ccdd', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355', lineHeight: 1.6 }}>{e.yesterday}</div>
-            <div key={`t${i}`} style={{ padding: '14px 16px', fontSize: '18px', color: '#88ffbb', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', borderRight: '1px solid #223355', lineHeight: 1.6 }}>{e.today}</div>
-            <div key={`b${i}`} style={{ padding: '14px 16px', fontSize: '20px', fontWeight: 'bold', color: e.blockers === 'None' ? '#55ccee' : '#ffaa44', background: i % 2 === 0 ? '#0d0d1a' : '#0a0a16', lineHeight: 1.6 }}>{e.blockers}</div>
-          </>
-        ))}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
