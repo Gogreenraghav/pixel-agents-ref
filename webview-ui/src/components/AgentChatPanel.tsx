@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { loadAgentMemory, loadAgentSkills } from './CompanyDashboard.js';
 
 interface AIConfig {
   provider: string;
@@ -61,7 +62,26 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const SYSTEM_PROMPT = `You are ${agentName}, a ${agentRole} working in a pixel art office. You are a helpful, concise AI assistant. Answer questions in your professional capacity as a ${agentRole}. Keep responses under 150 words unless more detail is needed.`;
+  const buildSystemPrompt = () => {
+    const mem = loadAgentMemory(agentId);
+    const skills = loadAgentSkills(agentId);
+    const totalXP = Object.values(skills.xp).reduce((a, b) => a + b, 0);
+    const topSkills = Object.entries(skills.xp).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k}(${v})`).join(', ');
+    const badges = skills.badges.length > 0 ? skills.badges.join(', ') : 'None yet';
+
+    let memSection = '';
+    if (mem && mem.entries.length > 0) {
+      const recent = mem.entries.slice(0, 5);
+      memSection = `\n\nYOUR WORK HISTORY (last ${recent.length} completed tasks):\n` +
+        recent.map((e, i) => `${i + 1}. [${e.taskType}] "${e.taskTitle}" — ${e.output.slice(0, 100)}...`).join('\n');
+    }
+
+    return `You are ${agentName}, a ${agentRole} working in a pixel art office.
+Level: ${skills.level} | Total XP: ${totalXP} | Top Skills: ${topSkills || 'None yet'}
+Badges earned: ${badges}${memSection}
+
+You are a helpful, concise AI assistant. Answer questions in your professional capacity as a ${agentRole}. Reference your past work when relevant. Keep responses under 150 words unless more detail is needed.`;
+  };
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -77,7 +97,7 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
 
     try {
       const apiMsgs = [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: buildSystemPrompt() },
         ...newMsgs.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
       ];
 
@@ -153,6 +173,16 @@ export function AgentChatPanel({ agentId, agentName, agentRole, aiConfig, onClos
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--pixel-agent-text)' }}>{agentName}</div>
           <div style={{ fontSize: '13px', color: providerColor }}>{aiConfig.provider.toUpperCase()} · {aiConfig.model}</div>
+          {(() => {
+            const mem = loadAgentMemory(agentId);
+            const skills = loadAgentSkills(agentId);
+            const totalXP = Object.values(skills.xp).reduce((a, b) => a + b, 0);
+            return (
+              <div style={{ fontSize: '12px', color: '#66aaff', marginTop: 2 }}>
+                ⚡ LVL {skills.level} · {totalXP} XP · 🧠 {mem?.entries.length ?? 0} memories
+              </div>
+            );
+          })()}
         </div>
         <button onClick={() => setShowConfig(v => !v)} style={{
           background: showConfig ? '#112233' : 'transparent', border: '1px solid #334466',
