@@ -2,6 +2,38 @@ import { useState, useEffect } from 'react';
 import { OrgChart } from './OrgChart.js';
 import { CEOInbox } from './CEOInbox.js';
 
+// ─── CLIENT SYSTEM ────────────────────────────────────────────────────────
+export interface Client {
+  id: string; name: string; company: string;
+  email: string; projectType: string; budget: number;
+  status: 'pending' | 'active' | 'completed';
+  satisfaction: number; // 1-5 stars
+  createdAt: string; notes: string;
+}
+export interface Project {
+  id: string; clientId: string; title: string;
+  description: string; budget: number; deadline: string;
+  status: 'briefing' | 'in_progress' | 'review' | 'delivered';
+  assignedTasks: string[]; // task IDs
+  createdAt: string; deliveredAt?: string;
+}
+const LS_CLIENTS = 'pixeloffice_clients';
+const LS_PROJECTS = 'pixeloffice_projects';
+
+export function loadClients(): Client[] {
+  try { return JSON.parse(localStorage.getItem(LS_CLIENTS) ?? '[]'); } catch { return []; }
+}
+export function saveClients(c: Client[]) {
+  try { localStorage.setItem(LS_CLIENTS, JSON.stringify(c)); } catch {}
+}
+export function loadProjects(): Project[] {
+  try { return JSON.parse(localStorage.getItem(LS_PROJECTS) ?? '[]'); } catch { return []; }
+}
+export function saveProjects(p: Project[]) {
+  try { localStorage.setItem(LS_PROJECTS, JSON.stringify(p)); } catch {}
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 // ─── Agent Memory System ───────────────────────────────────────────────────
 export interface AgentMemoryEntry {
   taskId: string; taskTitle: string; taskType: string;
@@ -677,7 +709,7 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
 }
 
 export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClose }: Props) {
-  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'|'org'|'inbox'>('tasks');
+  const [tab, setTab] = useState<'tasks'|'folders'|'scrum'|'analytics'|'team'|'org'|'inbox'|'clients'>('tasks');
   const tabs = [
     { key: 'tasks' as const, label: '📋 Task Board' },
     { key: 'folders' as const, label: '📁 Output Folders' },
@@ -685,6 +717,7 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
     { key: 'analytics' as const, label: '📈 Analytics' },
     { key: 'team' as const, label: '👥 Team' },
     { key: 'org' as const, label: '🗂️ Org Chart' },
+    { key: 'clients' as const, label: '🏢 Clients' },
     { key: 'inbox' as const, label: '👑 CEO Inbox' },
   ];
 
@@ -725,7 +758,336 @@ export function CompanyDashboard({ agents, companyBalance, companyRevenue, onClo
         {tab === 'analytics' && <Analytics agents={agents} companyBalance={companyBalance} companyRevenue={companyRevenue} />}
         {tab === 'team'      && <TeamGrid agents={agents} />}
         {tab === 'org'       && <OrgChart agents={agents} />}
+        {tab === 'clients'   && <ClientPortal agents={agents} />}
         {tab === 'inbox'     && <CEOInbox agents={agents} />}
+      </div>
+    </div>
+  );
+}
+
+// ─── CLIENT PORTAL ─────────────────────────────────────────────────────────
+const PROJECT_TYPES = ['Website Dev', 'Mobile App', 'Marketing', 'Research', 'Design', 'Consulting', 'Data Analysis', 'Custom'];
+
+function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
+  const [clients, setClients] = useState<Client[]>(loadClients);
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [selected, setSelected] = useState<Client | null>(null);
+  const [form, setForm] = useState({ name: '', company: '', email: '', projectType: 'Website Dev', budget: '', notes: '' });
+  const [projectForm, setProjectForm] = useState({ title: '', description: '', deadline: '', budget: '' });
+
+  const addClient = () => {
+    if (!form.name || !form.company) return;
+    const newClient: Client = {
+      id: `cl_${Date.now()}`, name: form.name, company: form.company,
+      email: form.email, projectType: form.projectType,
+      budget: parseInt(form.budget) || 0, status: 'pending',
+      satisfaction: 0, createdAt: new Date().toLocaleString(), notes: form.notes,
+    };
+    const updated = [newClient, ...clients];
+    setClients(updated); saveClients(updated);
+    setForm({ name: '', company: '', email: '', projectType: 'Website Dev', budget: '', notes: '' });
+    setShowAdd(false);
+  };
+
+  const updateStatus = (id: string, status: Client['status']) => {
+    const updated = clients.map(c => c.id === id ? { ...c, status } : c);
+    setClients(updated); saveClients(updated);
+  };
+
+  const rateClient = (id: string, rating: number) => {
+    const updated = clients.map(c => c.id === id ? { ...c, satisfaction: rating } : c);
+    setClients(updated); saveClients(updated);
+  };
+
+  const createProject = () => {
+    if (!projectForm.title || !selected) return;
+    const newProject: Project = {
+      id: `proj_${Date.now()}`,
+      clientId: selected.id,
+      title: projectForm.title,
+      description: projectForm.description,
+      budget: parseInt(projectForm.budget) || selected.budget,
+      deadline: projectForm.deadline,
+      status: 'briefing',
+      assignedTasks: [],
+      createdAt: new Date().toLocaleString(),
+    };
+    const updated = [newProject, ...projects];
+    setProjects(updated); saveProjects(updated);
+
+    // Add to CEO Inbox
+    const inboxKey = 'pixeloffice_ceo_inbox';
+    const inbox = JSON.parse(localStorage.getItem(inboxKey) ?? '[]');
+    inbox.unshift({
+      id: `msg_${Date.now()}`,
+      subject: `📋 New Project: ${newProject.title}`,
+      body: `Client: ${selected.name} (${selected.company})\nBudget: $${newProject.budget.toLocaleString()}\nDeadline: ${newProject.deadline || 'Not set'}\n\n${newProject.description}`,
+      from: `🏢 ${selected.name}`,
+      date: new Date().toLocaleString(),
+      isProject: true,
+      projectId: newProject.id,
+    });
+    localStorage.setItem(inboxKey, JSON.stringify(inbox.slice(0, 100)));
+
+    setProjectForm({ title: '', description: '', deadline: '', budget: '' });
+    setShowProjectForm(false);
+  };
+
+  const updateProjectStatus = (projId: string, status: Project['status']) => {
+    const updated = projects.map(p => p.id === projId ? { ...p, status, ...(status === 'delivered' ? { deliveredAt: new Date().toLocaleString() } : {}) } : p);
+    setProjects(updated); saveProjects(updated);
+  };
+
+  // Revenue from completed projects
+  const totalClientRevenue = projects.filter(p => p.status === 'delivered').reduce((s, p) => s + p.budget, 0);
+  const avgSatisfaction = clients.filter(c => c.satisfaction > 0).length > 0
+    ? (clients.filter(c => c.satisfaction > 0).reduce((s, c) => s + c.satisfaction, 0) / clients.filter(c => c.satisfaction > 0).length).toFixed(1)
+    : 'N/A';
+
+  const allProjects = loadProjects();
+  const recentDeliveries = allProjects.filter(p => p.status === 'delivered').slice(0, 5);
+
+  const deliverProject = (projId: string) => {
+    updateProjectStatus(projId, 'delivered');
+    // Add revenue to company balance
+    const proj = projects.find(p => p.id === projId);
+    if (proj) {
+      const bal = parseInt(localStorage.getItem('pixeloffice_balance') ?? '50000');
+      localStorage.setItem('pixeloffice_balance', String(bal + proj.budget));
+      // Dispatch event to refresh balance
+      window.dispatchEvent(new MessageEvent('message', { data: { type: 'balanceUpdated' } }));
+      // Notify CEO
+      const inboxKey = 'pixeloffice_ceo_inbox';
+      const inbox = JSON.parse(localStorage.getItem(inboxKey) ?? '[]');
+      const client = clients.find(c => c.id === proj.clientId);
+      inbox.unshift({
+        id: `msg_${Date.now()}`,
+        subject: `💰 Project Delivered: ${proj.title}`,
+        body: `Great news! Project "${proj.title}" has been delivered!\n\nClient: ${client?.name ?? 'Unknown'} (${client?.company ?? ''})\nRevenue added: $${proj.budget.toLocaleString()}\n\nPlease rate client satisfaction (1-5 stars) in the Client Portal.`,
+        from: '📦 System',
+        date: new Date().toLocaleString(),
+        isProject: true,
+        projectId: proj.id,
+      });
+      localStorage.setItem(inboxKey, JSON.stringify(inbox.slice(0, 100)));
+    }
+  };
+
+
+  const statusColor = (s: string) => s === 'active' ? '#00ff88' : s === 'completed' ? '#66ddff' : '#ffaa44';
+  const totalRevenue = clients.filter(c => c.status === 'completed').reduce((s, c) => s + c.budget, 0);
+
+  const inp: React.CSSProperties = {
+    background: '#0a0a14', color: '#aaddff', border: '2px solid #334466',
+    fontFamily: 'monospace', fontSize: '16px', padding: '8px 10px', width: '100%', boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100%', gap: 16 }}>
+      {/* Client List */}
+      <div style={{ width: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>🏢 Clients ({clients.length})</span>
+          <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>+ Add Client</button>
+        </div>
+
+        {/* Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', color: '#ffdd44', fontWeight: 'bold' }}>{clients.filter(c => c.status === 'active').length}</div>
+            <div style={{ fontSize: '15px', color: '#8899aa' }}>Active</div>
+          </div>
+          <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', color: '#66ddff', fontWeight: 'bold' }}>{clients.filter(c => c.status === 'completed').length}</div>
+            <div style={{ fontSize: '15px', color: '#8899aa' }}>Completed</div>
+          </div>
+          <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', color: '#00ff88', fontWeight: 'bold' }}>${totalRevenue.toLocaleString()}</div>
+            <div style={{ fontSize: '15px', color: '#8899aa' }}>Revenue</div>
+          </div>
+        </div>
+
+        {/* Project History & Analytics */}
+        <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '12px' }}>
+          <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 8 }}>📊 Project Analytics</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '22px', color: '#ffdd44', fontWeight: 'bold' }}>${totalClientRevenue.toLocaleString()}</div>
+              <div style={{ fontSize: '14px', color: '#8899aa' }}>Total Revenue</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '22px', color: '#ffdd44', fontWeight: 'bold' }}>⭐ {avgSatisfaction}</div>
+              <div style={{ fontSize: '14px', color: '#8899aa' }}>Avg Rating</div>
+            </div>
+          </div>
+          <div style={{ fontSize: '15px', color: '#667788', marginBottom: 6 }}>Recent Deliveries:</div>
+          {recentDeliveries.length === 0 && <div style={{ fontSize: '14px', color: '#445566' }}>No completed projects yet.</div>}
+          {recentDeliveries.map(p => {
+            const client = clients.find(c => c.id === p.clientId);
+            return (
+              <div key={p.id} style={{ background: '#0d0d1e', border: '1px solid #223355', padding: '8px', marginBottom: 6 }}>
+                <div style={{ fontSize: '15px', color: '#aaddff', fontWeight: 'bold' }}>{p.title}</div>
+                <div style={{ fontSize: '13px', color: '#667788' }}>🏢 {client?.company ?? 'Unknown'} · 💰 ${p.budget.toLocaleString()} · {p.deliveredAt}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add Form */}
+        {showAdd && (
+          <div style={{ background: '#0d0d1e', border: '2px solid #334466', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>➕ New Client</div>
+            <input placeholder="Client Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inp} />
+            <input placeholder="Company Name *" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} style={inp} />
+            <input placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} style={inp} />
+            <select value={form.projectType} onChange={e => setForm({ ...form, projectType: e.target.value })} style={inp}>
+              {PROJECT_TYPES.map(t => <option key={t}>{t}</option>)}
+            </select>
+            <input placeholder="Budget ($)" type="number" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })} style={inp} />
+            <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} style={{ ...inp, height: 60 }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={addClient} style={{ flex: 1, padding: 10, fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>✅ Add Client</button>
+              <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: 10, fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#1a0606', color: '#ff6666', border: '2px solid #331111', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Client Cards */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {clients.length === 0 && <div style={{ color: '#445566', fontSize: '17px', textAlign: 'center', padding: 30 }}>No clients yet. Add your first client!</div>}
+          {clients.map(c => (
+            <div key={c.id} onClick={() => setSelected(selected?.id === c.id ? null : c)}
+              style={{ background: selected?.id === c.id ? '#112233' : '#0d0d1e', border: `2px solid ${selected?.id === c.id ? '#66ddff' : '#334466'}`, padding: '14px 16px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>{c.name}</span>
+                <span style={{ fontSize: '15px', padding: '2px 10px', background: statusColor(c.status) + '33', border: `1px solid ${statusColor(c.status)}`, color: statusColor(c.status), fontWeight: 'bold' }}>{c.status.toUpperCase()}</span>
+              </div>
+              <div style={{ fontSize: '17px', color: '#8899aa', marginBottom: 4 }}>🏢 {c.company}</div>
+              <div style={{ fontSize: '16px', color: '#aabbcc', marginBottom: 4 }}>📋 {c.projectType} · 💰 ${c.budget.toLocaleString()}</div>
+              {c.satisfaction > 0 && (
+                <div style={{ fontSize: '16px', color: '#ffdd44' }}>{'⭐'.repeat(c.satisfaction)}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Client Detail */}
+      <div style={{ flex: 1, background: '#0d0d1e', border: '2px solid #334466', padding: 20, overflowY: 'auto' }}>
+        {!selected ? (
+          <div style={{ color: '#445566', fontSize: '18px', textAlign: 'center', paddingTop: 80 }}>
+            👈 Select a client to view details
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: '28px', color: '#66ddff', fontWeight: 'bold', marginBottom: 4 }}>{selected.name}</div>
+                <div style={{ fontSize: '20px', color: '#8899aa' }}>🏢 {selected.company}</div>
+                <div style={{ fontSize: '18px', color: '#667788' }}>📧 {selected.email}</div>
+              </div>
+              <span style={{ fontSize: '16px', padding: '4px 14px', background: statusColor(selected.status) + '33', border: `2px solid ${statusColor(selected.status)}`, color: statusColor(selected.status), fontWeight: 'bold' }}>{selected.status.toUpperCase()}</span>
+            </div>
+
+            {/* Project Info */}
+            <div style={{ background: '#0a0a18', border: '2px solid #223355', padding: '16px', marginBottom: 16 }}>
+              <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold', marginBottom: 10 }}>📋 Project Details</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div><span style={{ color: '#8899aa', fontSize: '16px' }}>Type: </span><span style={{ color: '#aaddff', fontSize: '16px', fontWeight: 'bold' }}>{selected.projectType}</span></div>
+                <div><span style={{ color: '#8899aa', fontSize: '16px' }}>Budget: </span><span style={{ color: '#ffdd44', fontSize: '16px', fontWeight: 'bold' }}>${selected.budget.toLocaleString()}</span></div>
+                <div><span style={{ color: '#8899aa', fontSize: '16px' }}>Added: </span><span style={{ color: '#aaddff', fontSize: '16px', fontWeight: 'bold' }}>{selected.createdAt}</span></div>
+              </div>
+              {selected.notes && (
+                <div style={{ marginTop: 10, fontSize: '16px', color: '#667788' }}>📝 {selected.notes}</div>
+              )}
+            </div>
+
+            {/* Satisfaction */}
+            <div style={{ background: '#0a0a18', border: '2px solid #223355', padding: '16px', marginBottom: 16 }}>
+              <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold', marginBottom: 10 }}>⭐ Client Satisfaction</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} onClick={() => rateClient(selected.id, n)}
+                    style={{ fontSize: '24px', background: selected.satisfaction >= n ? '#2a2a00' : '#0a0a14', border: `2px solid ${selected.satisfaction >= n ? '#ffdd44' : '#334466'}`, cursor: 'pointer' }}>
+                    {selected.satisfaction >= n ? '⭐' : '☆'}
+                  </button>
+                ))}
+                {selected.satisfaction > 0 && <span style={{ fontSize: '18px', color: '#ffdd44', fontWeight: 'bold', alignSelf: 'center', marginLeft: 10 }}>{selected.satisfaction}/5</span>}
+              </div>
+            </div>
+
+            {/* Status Actions */}
+            <div style={{ background: '#0a0a18', border: '2px solid #223355', padding: '16px', marginBottom: 16 }}>
+              <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold', marginBottom: 10 }}>🔄 Update Status</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['pending', 'active', 'completed'] as const).map(s => (
+                  <button key={s} onClick={() => updateStatus(selected.id, s)}
+                    style={{ flex: 1, padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: selected.status === s ? statusColor(s) + '33' : '#0a0a14', color: statusColor(s), border: `2px solid ${statusColor(s)}`, cursor: 'pointer' }}>
+                    {s === 'active' ? '▶ Active' : s === 'completed' ? '✅ Completed' : '⏳ Pending'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Projects for this client */}
+            {(() => {
+              const clientProjects = projects.filter(p => p.clientId === selected.id);
+              return (
+                <div style={{ background: '#0a0a18', border: '2px solid #223355', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>📁 Projects ({clientProjects.length})</div>
+                    <button onClick={() => setShowProjectForm(v => !v)} style={{ padding: '6px 14px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>+ New Project</button>
+                  </div>
+
+                  {/* Project Form */}
+                  {showProjectForm && (
+                    <div style={{ background: '#0d0d1e', border: '1px solid #00ff88', padding: '14px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input placeholder="Project Title *" value={projectForm.title} onChange={e => setProjectForm({ ...projectForm, title: e.target.value })} style={inp} />
+                      <textarea placeholder="Project Description" value={projectForm.description} onChange={e => setProjectForm({ ...projectForm, description: e.target.value })} style={{ ...inp, height: 60 }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input placeholder="Budget ($)" type="number" value={projectForm.budget} onChange={e => setProjectForm({ ...projectForm, budget: e.target.value })} style={{ ...inp, flex: 1 }} />
+                        <input placeholder="Deadline" type="date" value={projectForm.deadline} onChange={e => setProjectForm({ ...projectForm, deadline: e.target.value })} style={{ ...inp, flex: 1 }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={createProject} style={{ flex: 1, padding: 10, fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>✅ Create & Send to CEO</button>
+                        <button onClick={() => setShowProjectForm(false)} style={{ flex: 1, padding: 10, fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#1a0606', color: '#ff6666', border: '2px solid #331111', cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {clientProjects.length === 0 && !showProjectForm && <div style={{ color: '#445566', fontSize: '16px' }}>No projects yet. Click "+ New Project" to create one.</div>}
+                  {clientProjects.map(p => {
+                    const pStatusColor = p.status === 'delivered' ? '#66ddff' : p.status === 'in_progress' ? '#ffdd44' : p.status === 'review' ? '#ff88cc' : '#667788';
+                    return (
+                      <div key={p.id} style={{ background: '#0d0d1e', border: '1px solid #223355', padding: '12px', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <div style={{ fontSize: '18px', color: '#aaddff', fontWeight: 'bold' }}>{p.title}</div>
+                          <span style={{ fontSize: '14px', padding: '2px 8px', background: pStatusColor + '33', border: `1px solid ${pStatusColor}`, color: pStatusColor, fontWeight: 'bold' }}>{p.status}</span>
+                        </div>
+                        <div style={{ fontSize: '15px', color: '#667788', marginBottom: 8 }}>{p.description?.slice(0, 80)}...</div>
+                        <div style={{ fontSize: '14px', color: '#8899aa', display: 'flex', gap: 16 }}>
+                          <span>💰 ${p.budget.toLocaleString()}</span>
+                          <span>📅 {p.deadline || 'No deadline'}</span>
+                        </div>
+                        {/* Status update */}
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          {(['briefing', 'in_progress', 'review', 'delivered'] as const).map(s => (
+                            <button key={s} onClick={() => s === 'delivered' ? deliverProject(p.id) : updateProjectStatus(p.id, s)}
+                              style={{ flex: 1, padding: '4px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 'bold', background: p.status === s ? pStatusColor + '33' : '#0a0a14', color: p.status === s ? pStatusColor : '#445566', border: `1px solid ${p.status === s ? pStatusColor : '#334466'}`, cursor: 'pointer' }}>
+                              {s === 'briefing' ? '📋 Brief' : s === 'in_progress' ? '⚡ Work' : s === 'review' ? '👀 Review' : '💰 Done'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );
