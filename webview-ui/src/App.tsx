@@ -6,6 +6,8 @@ import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
 import { AgentChatPanel } from './components/AgentChatPanel.js';
 import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
 import { GroupChat } from './components/GroupChat.js';
+import { WebhookSettings } from './components/WebhookSettings.js';
+import { APISettings } from './components/APISettings.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -515,6 +517,8 @@ function App() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [chatAgentId, setChatAgentId] = useState<string | null>(null);
   const [groupChatOpen, setGroupChatOpen] = useState(false);
+  const [webhookOpen, setWebhookOpen] = useState(false);
+  const [apiOpen, setApiOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1042,6 +1046,16 @@ function App() {
         />
       )}
 
+      {/* Webhook Settings */}
+      {webhookOpen && (
+        <WebhookSettings onClose={() => setWebhookOpen(false)} />
+      )}
+
+      {/* API Settings */}
+      {apiOpen && (
+        <APISettings onClose={() => setApiOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1089,6 +1103,8 @@ function App() {
         onScheduleClick={() => setScheduleOpen(v => !v)}
         scheduleOpen={scheduleOpen}
         onGroupChatClick={() => setGroupChatOpen(v => !v)}
+        onWebhookClick={() => setWebhookOpen(v => !v)}
+        onAPIClick={() => setApiOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 

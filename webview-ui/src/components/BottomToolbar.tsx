@@ -13,6 +13,8 @@ interface BottomToolbarProps {
   scheduleOpen?: boolean;
   onDashboardClick?: () => void;
   onGroupChatClick?: () => void;
+  onWebhookClick?: () => void;
+  onAPIClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -357,6 +359,8 @@ export function BottomToolbar({
   scheduleOpen,
   onDashboardClick,
   onGroupChatClick,
+  onWebhookClick,
+  onAPIClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -583,6 +587,37 @@ export function BottomToolbar({
         >
           Layout
         </button>
+
+        {/* WEBHOOK button */}
+        <button
+          onClick={onWebhookClick}
+          onMouseEnter={() => setHovered('webhook')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'webhook' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Webhook Settings"
+        >
+          🔗 Webhooks
+        </button>
+
+        {/* API button */}
+        <button
+          onClick={onAPIClick}
+          onMouseEnter={() => setHovered('api')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'api' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="API Endpoints"
+        >
+          🌐 API
+        </button>
+
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setIsSettingsOpen((v) => !v)}

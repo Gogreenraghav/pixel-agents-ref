@@ -32,6 +32,21 @@ export function loadProjects(): Project[] {
 export function saveProjects(p: Project[]) {
   try { localStorage.setItem(LS_PROJECTS, JSON.stringify(p)); } catch {}
 }
+
+// Webhook trigger helper
+function triggerWebhook(event: string, data: Record<string, any>) {
+  try {
+    const webhooks = JSON.parse(localStorage.getItem('pixeloffice_webhooks') ?? '[]').filter((w: any) => w.active && w.events.includes(event));
+    webhooks.forEach((wh: any) => {
+      fetch(wh.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event, data, timestamp: new Date().toISOString() }),
+      }).catch(() => {});
+    });
+  } catch {}
+}
+export { triggerWebhook };
 // ──────────────────────────────────────────────────────────────────────────
 
 // ─── Agent Memory System ───────────────────────────────────────────────────
@@ -277,6 +292,9 @@ Output ONLY valid JSON array (no markdown, no explanation). Example: [{"title":"
       
       updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'done', output } : t));
       saveOutput(task.agentId, task.id, task.title, output);
+
+      // 🔗 Webhook: task_completed
+      triggerWebhook('task_completed', { task, agent: agent, output });
 
       // 🧠 Save to Agent Memory
       addMemoryEntry(task.agentId, agent.name, agent.role, {
@@ -789,6 +807,8 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
     setClients(updated); saveClients(updated);
     setForm({ name: '', company: '', email: '', projectType: 'Website Dev', budget: '', notes: '' });
     setShowAdd(false);
+    // 🔗 Webhook: client_added
+    triggerWebhook('client_added', { client: newClient });
   };
 
   const updateStatus = (id: string, status: Client['status']) => {
@@ -816,6 +836,9 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
     };
     const updated = [newProject, ...projects];
     setProjects(updated); saveProjects(updated);
+
+    // 🔗 Webhook: project_created
+    triggerWebhook('project_created', { project: newProject, client: selected });
 
     // Add to CEO Inbox
     const inboxKey = 'pixeloffice_ceo_inbox';
