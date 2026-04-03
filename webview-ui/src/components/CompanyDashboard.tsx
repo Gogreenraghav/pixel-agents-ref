@@ -33,6 +33,41 @@ export function getMemoryContext(agentId: string): string {
   const recent = mem.entries.slice(0, 5);
   return `\n\n[YOUR MEMORY — Last ${recent.length} tasks you completed:\n${recent.map((e, i) => `${i + 1}. [${e.taskType}] ${e.taskTitle} → ${e.output.slice(0, 80)}...`).join('\n')}]\n`;
 }
+
+// ─── Agent Skill System ────────────────────────────────────────────────────
+export interface AgentSkills {
+  agentId: string;
+  xp: Record<string, number>; // taskType → XP points
+  level: number;
+  badges: string[];
+}
+const LS_SKILL_PREFIX = 'pixeloffice_skills_';
+const SKILL_BADGES: Record<string, { threshold: number; badge: string }[]> = {
+  'Code':        [{ threshold: 3, badge: '🥉 Jr Dev' }, { threshold: 8, badge: '🥈 Sr Dev' }, { threshold: 15, badge: '🥇 Tech Lead' }],
+  'Research':    [{ threshold: 3, badge: '🔍 Analyst' }, { threshold: 8, badge: '📊 Researcher' }, { threshold: 15, badge: '🧠 Expert' }],
+  'Design':      [{ threshold: 3, badge: '🎨 Jr Designer' }, { threshold: 8, badge: '✏️ Designer' }, { threshold: 15, badge: '🏆 Art Director' }],
+  'Draft':       [{ threshold: 3, badge: '📝 Copywriter' }, { threshold: 8, badge: '✍️ Writer' }, { threshold: 15, badge: '📖 Content Lead' }],
+  'Analysis':    [{ threshold: 3, badge: '📈 Analyst' }, { threshold: 8, badge: '📉 Strategist' }, { threshold: 15, badge: '💡 Insight Lead' }],
+  'Sales Script':[{ threshold: 3, badge: '📞 SDR' }, { threshold: 8, badge: '💼 AE' }, { threshold: 15, badge: '🏅 Sales Lead' }],
+  'Review':      [{ threshold: 3, badge: '👁️ Reviewer' }, { threshold: 8, badge: '✅ QA Lead' }, { threshold: 15, badge: '🎯 QA Master' }],
+};
+export function loadAgentSkills(agentId: string): AgentSkills {
+  try { return JSON.parse(localStorage.getItem(LS_SKILL_PREFIX + agentId) ?? 'null') ?? { agentId, xp: {}, level: 1, badges: [] }; }
+  catch { return { agentId, xp: {}, level: 1, badges: [] }; }
+}
+export function awardSkillXP(agentId: string, taskType: string): AgentSkills {
+  const skills = loadAgentSkills(agentId);
+  skills.xp[taskType] = (skills.xp[taskType] ?? 0) + 1;
+  // Check for new badges
+  const defs = SKILL_BADGES[taskType] ?? [];
+  const newBadges = defs.filter(d => skills.xp[taskType] >= d.threshold && !skills.badges.includes(d.badge)).map(d => d.badge);
+  skills.badges = [...new Set([...skills.badges, ...newBadges])];
+  // Level = total XP / 5 + 1
+  const totalXP = Object.values(skills.xp).reduce((a, b) => a + b, 0);
+  skills.level = Math.floor(totalXP / 5) + 1;
+  try { localStorage.setItem(LS_SKILL_PREFIX + agentId, JSON.stringify(skills)); } catch {}
+  return skills;
+}
 // ──────────────────────────────────────────────────────────────────────────
 
 interface HiredAgent {
@@ -194,6 +229,9 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
         taskId: task.id, taskTitle: task.title, taskType: task.type,
         output, date: new Date().toLocaleString(),
       });
+
+      // 🎯 Award Skill XP
+      awardSkillXP(task.agentId, task.type);
 
       // Feedback to CEO
       const inboxKey = 'pixeloffice_ceo_inbox';
@@ -560,20 +598,45 @@ function TeamGrid({ agents, onChat }: { agents: HiredAgent[]; onChat?: (id: stri
           No agents hired yet.
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px,1fr))', gap: 14, padding: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px,1fr))', gap: 14, padding: 4 }}>
         {agents.map(a => {
           const sc = a.status === 'Working' ? '#00ff88' : a.status === 'In Meeting' ? '#ffaa44' : '#6677aa';
+          const skills = loadAgentSkills(a.id);
+          const totalXP = Object.values(skills.xp).reduce((s, v) => s + v, 0);
+          const topSkill = Object.entries(skills.xp).sort((x, y) => y[1] - x[1])[0];
           return (
             <div key={a.id} style={{ background: '#0d0d1e', border: '2px solid #223355', padding: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ fontSize: '32px' }}>👤</div>
                 <div style={{ fontSize: '15px', padding: '4px 10px', background: sc + '33', border: `2px solid ${sc}`, color: sc, fontWeight: 'bold' }}>{a.status}</div>
               </div>
-              <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 4 }}>{a.name}</div>
-              <div style={{ fontSize: '19px', color: '#88eeff', fontWeight: 'bold', marginBottom: 4 }}>{a.role}</div>
-              <div style={{ fontSize: '17px', color: '#88aabb', fontWeight: 'bold', marginBottom: 12 }}>{a.dept}</div>
+              <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 2 }}>{a.name}</div>
+              <div style={{ fontSize: '19px', color: '#88eeff', fontWeight: 'bold', marginBottom: 2 }}>{a.role}</div>
+              <div style={{ fontSize: '17px', color: '#88aabb', fontWeight: 'bold', marginBottom: 10 }}>{a.dept}</div>
+
+              {/* Skill XP Bar */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: '16px', color: '#ffee55', fontWeight: 'bold' }}>⚡ LVL {skills.level}</span>
+                  <span style={{ fontSize: '16px', color: '#aabbcc', fontWeight: 'bold' }}>{totalXP} XP</span>
+                </div>
+                <div style={{ height: 10, background: '#111133', border: '1px solid #223355' }}>
+                  <div style={{ height: '100%', width: `${Math.min((totalXP % 5) / 5 * 100, 100)}%`, background: '#ffee55' }} />
+                </div>
+                {topSkill && <div style={{ fontSize: '15px', color: '#aabbcc', marginTop: 4 }}>Top: {topSkill[0]} ({topSkill[1]} tasks)</div>}
+              </div>
+
+              {/* Badges */}
+              {skills.badges.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                  {skills.badges.map(b => (
+                    <span key={b} style={{ fontSize: '13px', padding: '2px 8px', background: '#1a1a00', border: '1px solid #554400', color: '#ffdd44', fontWeight: 'bold' }}>{b}</span>
+                  ))}
+                </div>
+              )}
+
               {a.aiConfig && (
-                <div style={{ fontSize: '17px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', fontWeight: 'bold', marginBottom: 12 }}>
+                <div style={{ fontSize: '17px', color: a.aiConfig.connected ? '#00ff88' : '#ff4444', fontWeight: 'bold', marginBottom: 10 }}>
                   🤖 {a.aiConfig.provider} · {a.aiConfig.model}
                 </div>
               )}
