@@ -2,6 +2,39 @@ import { useState, useEffect } from 'react';
 import { OrgChart } from './OrgChart.js';
 import { CEOInbox } from './CEOInbox.js';
 
+// ─── Agent Memory System ───────────────────────────────────────────────────
+export interface AgentMemoryEntry {
+  taskId: string; taskTitle: string; taskType: string;
+  output: string; date: string; agentName: string; role: string;
+}
+export interface AgentMemory {
+  agentId: string; agentName: string; role: string;
+  entries: AgentMemoryEntry[];
+  totalTasks: number; lastActive: string;
+}
+const LS_MEM_PREFIX = 'pixeloffice_memory_';
+
+export function loadAgentMemory(agentId: string): AgentMemory | null {
+  try { return JSON.parse(localStorage.getItem(LS_MEM_PREFIX + agentId) ?? 'null'); } catch { return null; }
+}
+export function saveAgentMemory(mem: AgentMemory) {
+  try { localStorage.setItem(LS_MEM_PREFIX + mem.agentId, JSON.stringify(mem)); } catch {}
+}
+export function addMemoryEntry(agentId: string, agentName: string, role: string, entry: Omit<AgentMemoryEntry, 'agentName' | 'role'>) {
+  const existing = loadAgentMemory(agentId) ?? { agentId, agentName, role, entries: [], totalTasks: 0, lastActive: '' };
+  existing.entries = [{ ...entry, agentName, role }, ...existing.entries].slice(0, 20); // keep last 20
+  existing.totalTasks = (existing.totalTasks ?? 0) + 1;
+  existing.lastActive = new Date().toLocaleString();
+  saveAgentMemory(existing);
+}
+export function getMemoryContext(agentId: string): string {
+  const mem = loadAgentMemory(agentId);
+  if (!mem || mem.entries.length === 0) return '';
+  const recent = mem.entries.slice(0, 5);
+  return `\n\n[YOUR MEMORY — Last ${recent.length} tasks you completed:\n${recent.map((e, i) => `${i + 1}. [${e.taskType}] ${e.taskTitle} → ${e.output.slice(0, 80)}...`).join('\n')}]\n`;
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 interface HiredAgent {
   id: string; name: string; role: string; dept: string; status: string;
   salary: number; currency: string; country: string; performance: number;
@@ -139,7 +172,8 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
     setErrorId(null);
     updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'running' } : t));
 
-    const prompt = `You are ${agent.name}, a ${agent.role} at a company. Complete this task professionally and thoroughly:\n\nTask Type: ${task.type}\nTask: ${task.title}\n\nProvide a complete, professional output for this task. Be specific and practical.`;
+    const memCtx = getMemoryContext(task.agentId);
+    const prompt = `You are ${agent.name}, a ${agent.role} at a company. Complete this task professionally and thoroughly:${memCtx}\n\nTask Type: ${task.type}\nTask: ${task.title}\n\nProvide a complete, professional output for this task. Be specific and practical.`;
 
     try {
       const cfg = agent.aiConfig as any;
@@ -154,6 +188,12 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
       
       updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'done', output } : t));
       saveOutput(task.agentId, task.id, task.title, output);
+
+      // 🧠 Save to Agent Memory
+      addMemoryEntry(task.agentId, agent.name, agent.role, {
+        taskId: task.id, taskTitle: task.title, taskType: task.type,
+        output, date: new Date().toLocaleString(),
+      });
 
       // Feedback to CEO
       const inboxKey = 'pixeloffice_ceo_inbox';
