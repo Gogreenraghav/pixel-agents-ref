@@ -4,6 +4,7 @@ import { BottomToolbar } from './components/BottomToolbar.js';
 import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
 import { AgentChatPanel } from './components/AgentChatPanel.js';
+import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -236,13 +237,14 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const LEVEL_NAMES = ['Junior', 'Mid', 'Senior', 'Lead', 'Principal'];
 
-function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote, onChat }: {
+function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote, onChat, onMemory }: {
   agent: HiredAgent;
   onClose: () => void;
   onFire: (id: string) => void;
   onPromote: (id: string) => void;
   onDemote: (id: string) => void;
   onChat?: (id: string) => void;
+  onMemory?: (id: string) => void;
 }) {
   const [confirmFire, setConfirmFire] = useState(false);
   const levelName = LEVEL_NAMES[(agent.level ?? 1) - 1] ?? 'Junior';
@@ -312,9 +314,12 @@ function AgentDetailPanel({ agent, onClose, onFire, onPromote, onDemote, onChat 
         {/* Promote / Demote */}
         {agent.aiConfig && onChat && (
           <button onClick={() => onChat(agent.id)} style={{
-            ...btnStyle, width: '100%', marginTop: 10, marginBottom: -4, background: '#0a0a14', color: '#aaccff', borderColor: '#334466'
+            ...btnStyle, width: '100%', marginTop: 10, marginBottom: 4, background: '#0a0a14', color: '#aaccff', borderColor: '#334466'
           }}>💬 Chat with Agent</button>
         )}
+        <button onClick={() => onMemory?.(agent.id)} style={{
+          ...btnStyle, width: '100%', marginTop: 0, marginBottom: -4, background: '#0a1a0a', color: '#44ffaa', borderColor: '#226644'
+        }}>🧠 View Memory & Skills</button>
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <button
             onClick={() => onPromote(agent.id)}
@@ -508,6 +513,7 @@ function App() {
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
   const [chatAgentId, setChatAgentId] = useState<string | null>(null);
+  const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
   // ── Game Economy ─────────────────────────────────────────────────────────
@@ -1014,8 +1020,16 @@ function App() {
           onClose={() => setSelectedHiredId(null)}
           onFire={handleFireAgent}
           onChat={(id) => { setSelectedHiredId(null); setChatAgentId(id); }}
+          onMemory={(id) => { setSelectedHiredId(null); setMemoryAgentId(id); }}
         />
       )}
+
+      {/* Memory Viewer */}
+      {memoryAgentId && (() => {
+        const a = hiredAgents.find(x => x.id === memoryAgentId);
+        if (!a) return null;
+        return <AgentMemoryViewer agentId={a.id} agentName={a.name} agentRole={a.role} onClose={() => setMemoryAgentId(null)} />;
+      })()}
 
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
