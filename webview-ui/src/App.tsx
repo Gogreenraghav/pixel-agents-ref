@@ -5,6 +5,7 @@ import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
 import { AgentChatPanel } from './components/AgentChatPanel.js';
 import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
+import { GroupChat } from './components/GroupChat.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -513,6 +514,7 @@ function App() {
   const [currentFloor, setCurrentFloor] = useState(isNaN(urlFloorParam) ? 0 : urlFloorParam);
   const [statsOpen, setStatsOpen] = useState(false);
   const [chatAgentId, setChatAgentId] = useState<string | null>(null);
+  const [groupChatOpen, setGroupChatOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1031,6 +1033,15 @@ function App() {
         return <AgentMemoryViewer agentId={a.id} agentName={a.name} agentRole={a.role} onClose={() => setMemoryAgentId(null)} />;
       })()}
 
+      {/* Group Chat */}
+      {groupChatOpen && (
+        <GroupChat
+          agents={hiredAgents}
+          ceoName={hiredAgents.find(a => a.role === 'CEO')?.name ?? 'CEO'}
+          onClose={() => setGroupChatOpen(false)}
+        />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1077,6 +1088,7 @@ function App() {
         statsOpen={statsOpen}
         onScheduleClick={() => setScheduleOpen(v => !v)}
         scheduleOpen={scheduleOpen}
+        onGroupChatClick={() => setGroupChatOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 

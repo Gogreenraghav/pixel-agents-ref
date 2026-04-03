@@ -12,6 +12,7 @@ interface BottomToolbarProps {
   onScheduleClick?: () => void;
   scheduleOpen?: boolean;
   onDashboardClick?: () => void;
+  onGroupChatClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -355,6 +356,7 @@ export function BottomToolbar({
   onScheduleClick,
   scheduleOpen,
   onDashboardClick,
+  onGroupChatClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -450,6 +452,20 @@ export function BottomToolbar({
           title="Company Dashboard"
         >
           🏢 Dashboard
+        </button>
+
+        {/* GROUP CHAT button */}
+        <button
+          onClick={onGroupChatClick}
+          onMouseEnter={() => setHovered('groupchat')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background: hovered === 'groupchat' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Team Group Chat"
+        >
+          💬 Chat
         </button>
 
         {/* SCHEDULE button */}
