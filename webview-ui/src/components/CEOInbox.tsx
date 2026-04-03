@@ -51,13 +51,16 @@ export function CEOInbox({ agents }: Props) {
 
   const save = (msgs: InboxMessage[]) => { setMessages(msgs); saveInbox(msgs); };
 
+  const [autoRoute, setAutoRoute] = useState(true);
+  const [routing, setRouting] = useState(false);
+
   const sendToCEO = () => {
-    if (!composeSubject.trim() && !composeBody.trim()) return;
+    if (!composeSubject.trim() && !composeBody.trim() && !fileContent) return;
     const msg: InboxMessage = {
       id: `msg_${Date.now()}`,
       from: 'Owner (You)',
       to: 'CEO',
-      subject: composeSubject || '(No subject)',
+      subject: composeSubject || fileName || '(No subject)',
       body: composeBody,
       type: composeType,
       fileName: fileName || undefined,
@@ -65,10 +68,83 @@ export function CEOInbox({ agents }: Props) {
       timestamp: new Date().toLocaleString(),
       read: false,
     };
-    save([msg, ...messages]);
+    const newMsgs = [msg, ...messages];
+    save(newMsgs);
     setShowCompose(false);
     setComposeSubject(''); setComposeBody(''); setFileName(''); setFileContent('');
     setSelected(msg);
+    // Auto-route if enabled and CEO has AI
+    if (autoRoute && ceo?.aiConfig) {
+      setTimeout(() => autoRouteMsg(msg, newMsgs), 500);
+    }
+  };
+
+  const autoRouteMsg = async (msg: InboxMessage, currentMsgs: InboxMessage[]) => {
+    if (!ceo?.aiConfig) return;
+    setRouting(true);
+    const agentList = agents.filter(a => a.role !== 'CEO').map(a => `${a.name} (${a.role})`).join(', ');
+    const fileSnippet = msg.fileContent ? `\n\nFile attached (${msg.fileName}):\n${msg.fileContent.slice(0, 800)}` : '';
+    const prompt = `You are ${ceo?.name}, CEO. You received this from the owner:
+
+Subject: ${msg.subject}
+${msg.body}${fileSnippet}
+
+Available team members: ${agentList || 'None'}
+
+1. Write a brief acknowledgment (2-3 sentences)
+2. Decide who should handle this task (pick from team or keep with CEO)
+3. Write the forwarding instruction
+
+Reply in JSON:
+{"acknowledgment": "...", "assignTo": "agent name or CEO", "instruction": "what they should do"}
+
+JSON only, no markdown.`;
+
+    try {
+      const cfg = ceo.aiConfig as any;
+      const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+        body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 250 }),
+      });
+      const data = await res.json();
+      const txt = (data.choices?.[0]?.message?.content ?? '{}').replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(txt);
+      const ack = parsed.acknowledgment ?? '';
+      const assignTo = parsed.assignTo ?? 'CEO';
+      const instruction = parsed.instruction ?? '';
+
+      // Update original msg with CEO response
+      const updatedMsgs = currentMsgs.map(m => m.id === msg.id
+        ? { ...m, aiResponse: ack, forwarded: assignTo !== 'CEO', forwardedTo: assignTo !== 'CEO' ? assignTo : undefined }
+        : m
+      );
+
+      // If forwarding to an agent, create a new message for them
+      if (assignTo !== 'CEO' && agents.some(a => a.name === assignTo || a.role === assignTo)) {
+        const targetAgent = agents.find(a => a.name === assignTo || a.role === assignTo);
+        const fwdMsg: InboxMessage = {
+          id: `fwd_${Date.now()}`,
+          from: ceo?.name ?? 'CEO',
+          to: targetAgent?.name ?? assignTo,
+          subject: `Task: ${msg.subject}`,
+          body: instruction,
+          type: 'task',
+          fileName: msg.fileName,
+          fileContent: msg.fileContent,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+        };
+        save([fwdMsg, ...updatedMsgs]);
+        setSelected(prev => prev?.id === msg.id ? { ...prev, aiResponse: ack, forwarded: true, forwardedTo: targetAgent?.name ?? assignTo } : prev);
+      } else {
+        save(updatedMsgs);
+        setSelected(prev => prev?.id === msg.id ? { ...prev, aiResponse: ack } : prev);
+      }
+    } catch (e: any) {
+      const updatedMsgs = currentMsgs.map(m => m.id === msg.id ? { ...m, aiResponse: `Auto-route error: ${e.message}` } : m);
+      save(updatedMsgs);
+    } finally { setRouting(false); }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,6 +217,7 @@ export function CEOInbox({ agents }: Props) {
           <div style={{ fontSize: '20px', color: '#ffd700', fontWeight: 'bold' }}>
             👑 CEO Inbox {unread > 0 && <span style={{ fontSize: '16px', background: '#ff4444', color: '#fff', padding: '2px 8px', marginLeft: 8 }}>{unread}</span>}
           </div>
+          {routing && <div style={{ fontSize: '14px', color: '#ffdd44', marginTop: 4, fontWeight: 'bold' }}>⏳ CEO routing task...</div>}
           {ceo ? (
             <div style={{ fontSize: '15px', color: '#66ddff', marginTop: 4 }}>{ceo.name} · {ceo.aiConfig ? '🤖 AI Ready' : '⚠ No AI'}</div>
           ) : (
@@ -187,7 +264,13 @@ export function CEOInbox({ agents }: Props) {
         {/* Compose */}
         {showCompose && (
           <div style={{ padding: '16px', borderBottom: '2px solid #223355', background: '#0d0d1a', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold' }}>✉ New Message → CEO</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold' }}>✉ New Message → CEO</div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '15px', color: '#667788', cursor: 'pointer' }}>
+                <input type="checkbox" checked={autoRoute} onChange={e => setAutoRoute(e.target.checked)} />
+                🤖 Auto-route via CEO AI
+              </label>
+            </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <select style={{ ...inp, flex: 1 }} value={composeType} onChange={e => setComposeType(e.target.value as any)}>
                 <option value="task">📋 Task</option>
