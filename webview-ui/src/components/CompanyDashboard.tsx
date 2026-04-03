@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OrgChart } from './OrgChart.js';
 import { CEOInbox } from './CEOInbox.js';
 
@@ -59,7 +59,65 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState('Code');
   const [newAgent, setNewAgent] = useState('');
+  const [autopilotEnabled, setAutopilotEnabled] = useState(false);
+  const [autopilotPaused, setAutopilotPaused] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const ceo = agents.find(a => a.role === 'CEO');
+
+  // Auto-run loop: every 30s, if enabled, check for todo tasks
+  useEffect(() => {
+    if (!autopilotEnabled || autopilotPaused) return;
+    const interval = setInterval(async () => {
+      const todoTasks = tasks.filter(t => t.status === 'todo');
+      for (const task of todoTasks) {
+        if (runningId || autopilotPaused) break;
+        await runTaskWithAI(task, true);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autopilotEnabled, autopilotPaused, tasks, runningId]);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalDesc, setGoalDesc] = useState('');
+  const [activeGoal, setActiveGoal] = useState<any>(JSON.parse(localStorage.getItem('pixeloffice_company_goal') || 'null'));
+
+  const setCompanyGoal = () => {
+    const goal = { title: goalTitle, desc: goalDesc, createdAt: new Date().toLocaleString() };
+    localStorage.setItem('pixeloffice_company_goal', JSON.stringify(goal));
+    setActiveGoal(goal);
+    setShowGoalModal(false);
+  };
+
+  const generateTasks = async () => {
+    if (!activeGoal || !ceo) return;
+    setRunningId('generating');
+    const prompt = `Goal: ${activeGoal.title}\nDescription: ${activeGoal.desc}\nAgents: ${agents.map(a => `${a.name} (${a.role})`).join(', ')}\n\nBreak this goal into 5 tasks. Output as a JSON list of objects: { title, type, targetAgentId, priority }. Use only valid agent IDs from list: ${agents.map(a => a.id).join(', ')}. JSON only.`;
+    
+    try {
+      const cfg = ceo.aiConfig as any;
+      const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+        body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: prompt }], max_tokens: 500 }),
+      });
+      const data = await res.json();
+      const txt = data.choices?.[0]?.message?.content ?? '[]';
+      const parsed = JSON.parse(txt.replace(/```json|```/g, '').trim());
+      
+      const newTasks: Task[] = parsed.map((p: any) => ({
+        id: `t${Date.now()}_${Math.random()}`,
+        agentId: p.targetAgentId ?? '',
+        agentName: agents.find(a => a.id === p.targetAgentId)?.name ?? 'Unassigned',
+        type: p.type ?? 'Code',
+        title: p.title,
+        status: 'todo',
+        createdAt: new Date().toLocaleString()
+      }));
+      updateTasks(p => [...newTasks, ...p]);
+    } catch (e) {
+      console.error('Goal generation failed', e);
+    } finally { setRunningId(null); }
+  };
 
   const updateTasks = (updater: (prev: Task[]) => Task[]) => {
     setTasks(prev => { const next = updater(prev); saveTasks(next); return next; });
@@ -74,9 +132,9 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
     setNewTitle(''); setShowNew(false);
   };
 
-  const runTaskWithAI = async (task: Task) => {
+  const runTaskWithAI = async (task: Task, auto = false) => {
     const agent = agents.find(a => a.id === task.agentId);
-    if (!agent?.aiConfig) { setErrorId(task.id); return; }
+    if (!agent?.aiConfig) { if (!auto) setErrorId(task.id); return; }
     setRunningId(task.id);
     setErrorId(null);
     updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'running' } : t));
@@ -93,20 +151,58 @@ function TaskBoard({ agents }: { agents: HiredAgent[] }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const output = data.choices?.[0]?.message?.content ?? '(no output)';
+      
       updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'done', output } : t));
       saveOutput(task.agentId, task.id, task.title, output);
+
+      // Feedback to CEO
+      const inboxKey = 'pixeloffice_ceo_inbox';
+      const inbox = JSON.parse(localStorage.getItem(inboxKey) ?? '[]');
+      inbox.unshift({ id: `msg_${Date.now()}`, subject: `Task Auto-Completed: ${task.title}`, body: `Agent ${agent.name} completed task: ${task.title}\n\nOutput preview:\n${output.slice(0, 100)}...`, from: 'System', date: new Date().toLocaleString() });
+      localStorage.setItem(inboxKey, JSON.stringify(inbox.slice(0, 100)));
+      
     } catch (e: any) {
       updateTasks(p => p.map(t => t.id === task.id ? { ...t, status: 'failed', output: e.message } : t));
-      setErrorId(task.id);
+      if (!auto) setErrorId(task.id);
     } finally { setRunningId(null); }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ color: '#66ddff', fontSize: '20px', fontWeight: 'bold' }}>Total: {tasks.length} tasks</span>
-        <button onClick={() => setShowNew(v => !v)} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: '#0d1a2a', color: '#66aaff', border: '2px solid #334466', cursor: 'pointer' }}>+ New Task</button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowGoalModal(true)} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: '#1a1a33', color: '#ffee55', border: '2px solid #334466', cursor: 'pointer' }}>🎯 Set Goal</button>
+          <button onClick={generateTasks} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: '#220033', color: '#ff66ff', border: '2px solid #551155', cursor: 'pointer' }}>🤖 Autopilot Tasks</button>
+          <button onClick={() => setAutopilotEnabled(!autopilotEnabled)} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: autopilotEnabled ? '#061a0d' : '#1a0606', color: autopilotEnabled ? '#33ffaa' : '#ff6666', border: '2px solid', cursor: 'pointer' }}>{autopilotEnabled ? '🟢 ON' : '🔴 OFF'} Auto-Run</button>
+          {autopilotEnabled && (
+            <button onClick={() => setAutopilotPaused(!autopilotPaused)} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: autopilotPaused ? '#1a1a00' : '#0d1a2a', color: autopilotPaused ? '#ffee55' : '#66aaff', border: '2px solid', cursor: 'pointer' }}>{autopilotPaused ? '⏸️ PAUSED' : '▶️ RUNNING'}</button>
+          )}
+          <button onClick={() => setShowNew(v => !v)} style={{ padding: '8px 18px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', background: '#0d1a2a', color: '#66aaff', border: '2px solid #334466', cursor: 'pointer' }}>+ New Task</button>
+        </div>
       </div>
+
+      {activeGoal && (
+        <div style={{ background: '#0d1a2a', border: '2px solid #44aaff', padding: '16px', marginBottom: 20 }}>
+          <div style={{ color: '#44aaff', fontSize: '16px', fontWeight: 'bold', marginBottom: 6 }}>🎯 CURRENT COMPANY GOAL</div>
+          <div style={{ color: '#aaddff', fontSize: '20px', fontWeight: 'bold' }}>{activeGoal.title}</div>
+          <div style={{ color: '#8899aa', fontSize: '16px', marginTop: 4 }}>{activeGoal.desc}</div>
+        </div>
+      )}
+
+      {showGoalModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: '#0d0d1e', border: '2px solid #334466', padding: 24, width: 400 }}>
+            <div style={{ color: '#66ddff', fontSize: '22px', fontWeight: 'bold', marginBottom: 20 }}>🎯 Set Company Goal</div>
+            <input placeholder="Goal Title" value={goalTitle} onChange={e => setGoalTitle(e.target.value)} style={{ ...inp, marginBottom: 12 }} />
+            <textarea placeholder="Description" value={goalDesc} onChange={e => setGoalDesc(e.target.value)} style={{ ...inp, height: 100, marginBottom: 20 }} />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setShowGoalModal(false)} style={{ flex: 1, padding: 10, background: '#1a0606', color: '#ff6666', border: '2px solid #331111', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={setCompanyGoal} style={{ flex: 1, padding: 10, background: '#061a0d', color: '#33ffaa', border: '2px solid #113322', cursor: 'pointer' }}>Set Goal</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNew && (
         <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
