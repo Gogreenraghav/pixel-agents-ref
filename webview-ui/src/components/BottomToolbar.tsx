@@ -15,6 +15,7 @@ interface BottomToolbarProps {
   onGroupChatClick?: () => void;
   onWebhookClick?: () => void;
   onAPIClick?: () => void;
+  onFinanceClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -361,6 +362,7 @@ export function BottomToolbar({
   onGroupChatClick,
   onWebhookClick,
   onAPIClick,
+  onFinanceClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -616,6 +618,21 @@ export function BottomToolbar({
           title="API Endpoints"
         >
           🌐 API
+        </button>
+
+        {/* FINANCE button */}
+        <button
+          onClick={onFinanceClick}
+          onMouseEnter={() => setHovered('finance')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'finance' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Finance Dashboard"
+        >
+          📊 Finance
         </button>
 
         <div style={{ position: 'relative' }}>

@@ -908,16 +908,16 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', gap: 16 }}>
+    <div style={{ display: 'flex', height: '100%', gap: 16, overflow: 'hidden' }}>
       {/* Client List */}
-      <div style={{ width: 380, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ width: 380, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>🏢 Clients ({clients.length})</span>
           <button onClick={() => setShowAdd(v => !v)} style={{ padding: '8px 16px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>+ Add Client</button>
         </div>
 
         {/* Summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, flexShrink: 0 }}>
           <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontSize: '28px', color: '#ffdd44', fontWeight: 'bold' }}>{clients.filter(c => c.status === 'active').length}</div>
             <div style={{ fontSize: '15px', color: '#8899aa' }}>Active</div>
@@ -933,7 +933,7 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
         </div>
 
         {/* Project History & Analytics */}
-        <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '12px' }}>
+        <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '12px', flexShrink: 0, maxHeight: 180, overflowY: 'auto' }}>
           <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 8 }}>📊 Project Analytics</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
             <div style={{ textAlign: 'center' }}>
@@ -958,8 +958,8 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
           })}
         </div>
 
-        {/* Add Form */}
-        {showAdd && (
+        {/* Add Form - Scrollable */}
+        <div style={{ flexShrink: 0, maxHeight: showAdd ? 400 : 0, overflowY: 'auto', transition: 'max-height 0.3s' }}>
           <div style={{ background: '#0d0d1e', border: '2px solid #334466', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold' }}>➕ New Client</div>
             <input placeholder="Client Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inp} />
@@ -975,9 +975,9 @@ function ClientPortal({ agents: _agents }: { agents: HiredAgent[] }) {
               <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: 10, fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#1a0606', color: '#ff6666', border: '2px solid #331111', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Client Cards */}
+        {/* Client Cards - Scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {clients.length === 0 && <div style={{ color: '#445566', fontSize: '17px', textAlign: 'center', padding: 30 }}>No clients yet. Add your first client!</div>}
           {clients.map(c => (

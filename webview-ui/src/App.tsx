@@ -8,6 +8,7 @@ import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
 import { GroupChat } from './components/GroupChat.js';
 import { WebhookSettings } from './components/WebhookSettings.js';
 import { APISettings } from './components/APISettings.js';
+import { FinancePanel } from './components/FinancePanel.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -519,6 +520,7 @@ function App() {
   const [groupChatOpen, setGroupChatOpen] = useState(false);
   const [webhookOpen, setWebhookOpen] = useState(false);
   const [apiOpen, setApiOpen] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1056,6 +1058,11 @@ function App() {
         <APISettings onClose={() => setApiOpen(false)} />
       )}
 
+      {/* Finance Panel */}
+      {financeOpen && (
+        <FinancePanel onClose={() => setFinanceOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1105,6 +1112,7 @@ function App() {
         onGroupChatClick={() => setGroupChatOpen(v => !v)}
         onWebhookClick={() => setWebhookOpen(v => !v)}
         onAPIClick={() => setApiOpen(v => !v)}
+        onFinanceClick={() => setFinanceOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 
