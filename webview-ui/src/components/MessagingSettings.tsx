@@ -84,6 +84,39 @@ export function MessagingSettings({ onClose }: Props) {
     }
   };
 
+  const getChatId = async () => {
+    if (!telegram.botToken) {
+      setTestMsg('❌ Please enter Bot Token first');
+      return;
+    }
+    setTestMsg('📨 Opening Telegram bot... Send it a message first!');
+    
+    // Extract bot username and open Telegram
+    const parts = telegram.botToken.split(':');
+    if (parts.length >= 2) {
+      window.open(`https://t.me/${parts[1]}`, '_blank');
+    }
+    
+    // Try to get updates after 5 seconds
+    setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${telegram.botToken}/getUpdates`);
+        const data = await res.json();
+        if (data.ok && data.result && data.result.length > 0) {
+          const chat = data.result[data.result.length - 1]?.message?.chat;
+          if (chat && chat.id) {
+            setTelegram(t => ({ ...t, chatId: String(chat.id) }));
+            setTestMsg(`✅ Chat ID found: ${chat.id}! Now click "Test Connection".`);
+            return;
+          }
+        }
+        setTestMsg('📨 No messages found. Send a message to your bot on Telegram, then click "Get Chat ID" again.');
+      } catch (e: any) {
+        setTestMsg(`❌ Error: ${e.message}`);
+      }
+    }, 5000);
+  };
+
   const testWhatsApp = async () => {
     if (!whatsapp.apiUrl || !whatsapp.apiToken) {
       setTestMsg('❌ Please enter API URL and Token');
@@ -166,16 +199,28 @@ export function MessagingSettings({ onClose }: Props) {
                 />
               </div>
               <div>
-                <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>💬 Chat ID *</div>
-                <input
-                  placeholder="Your Telegram Chat ID (e.g., 123456789)"
-                  value={telegram.chatId}
-                  onChange={e => setTelegram(t => ({ ...t, chatId: e.target.value }))}
-                  style={inp}
-                />
+                <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>💬 Chat ID</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    placeholder="Chat ID will appear here..."
+                    value={telegram.chatId}
+                    readOnly
+                    style={{ ...inp, flex: 1, opacity: telegram.chatId ? 1 : 0.6 }}
+                  />
+                  <button
+                    onClick={getChatId}
+                    style={{ padding: '10px 16px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#1a1a00', color: '#ffdd44', border: '2px solid #ffdd44', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    🔍 Get Chat ID
+                  </button>
+                </div>
               </div>
               <div style={{ background: '#0d0d1a', border: '1px solid #223355', padding: '12px', fontSize: '14px', color: '#667788' }}>
-                💡 <span style={{ color: '#aaddff' }}>How to get Chat ID:</span> Start a chat with your bot, then send any message. Visit <span style={{ color: '#00ff88' }}>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> to find your chat ID.
+                💡 <span style={{ color: '#aaddff' }}>Setup Steps:</span><br/>
+                1. Get Bot Token from <span style={{ color: '#00ff88' }}>@BotFather</span> on Telegram<br/>
+                2. Click "Get Chat ID" → Bot page opens in Telegram<br/>
+                3. Send any message to the bot<br/>
+                4. Chat ID will be auto-detected!
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
@@ -277,8 +322,8 @@ export function MessagingSettings({ onClose }: Props) {
 
           {/* Test Message Result */}
           {testMsg && (
-            <div style={{ background: '#0d0d1a', border: `2px solid ${testMsg.includes('✅') ? '#00ff88' : testMsg.includes('⏳') ? '#ffdd44' : '#ff4444'}`, padding: '14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '16px', color: testMsg.includes('✅') ? '#00ff88' : testMsg.includes('⏳') ? '#ffdd44' : '#ff4444' }}>{testMsg}</span>
+            <div style={{ background: '#0d0d1a', border: `2px solid ${testMsg.includes('✅') ? '#00ff88' : testMsg.includes('⏳') || testMsg.includes('📨') ? '#ffdd44' : '#ff4444'}`, padding: '14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '16px', color: testMsg.includes('✅') ? '#00ff88' : testMsg.includes('⏳') || testMsg.includes('📨') ? '#ffdd44' : '#ff4444' }}>{testMsg}</span>
             </div>
           )}
 
