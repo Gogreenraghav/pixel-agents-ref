@@ -17,6 +17,7 @@ import { GameMechanics } from './components/GameMechanics.js';
 import { EmailSettings } from './components/EmailSettings.js';
 import { Unlockables } from './components/Unlockables.js';
 import { Leaderboard } from './components/Leaderboard.js';
+import { FloorManager } from './components/FloorManager.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -537,6 +538,7 @@ function App() {
   const [emailOpen, setEmailOpen] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [floorOpen, setFloorOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1119,6 +1121,11 @@ function App() {
         <Leaderboard onClose={() => setLeaderboardOpen(false)} />
       )}
 
+      {/* Floor Manager */}
+      {floorOpen && (
+        <FloorManager onClose={() => setFloorOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1177,6 +1184,7 @@ function App() {
         onEmailClick={() => setEmailOpen(v => !v)}
         onUnlockClick={() => setUnlockOpen(v => !v)}
         onLeaderboardClick={() => setLeaderboardOpen(v => !v)}
+        onFloorClick={() => setFloorOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 

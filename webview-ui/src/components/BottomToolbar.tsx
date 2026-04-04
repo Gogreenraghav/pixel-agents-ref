@@ -24,6 +24,7 @@ interface BottomToolbarProps {
   onEmailClick?: () => void;
   onUnlockClick?: () => void;
   onLeaderboardClick?: () => void;
+  onFloorClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -379,6 +380,7 @@ export function BottomToolbar({
   onEmailClick,
   onUnlockClick,
   onLeaderboardClick,
+  onFloorClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -769,6 +771,21 @@ export function BottomToolbar({
           title="Global Leaderboard"
         >
           🏆 Rank
+        </button>
+
+        {/* FLOOR button */}
+        <button
+          onClick={onFloorClick}
+          onMouseEnter={() => setHovered('floor')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'floor' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="4-Floor Building"
+        >
+          🏗️ Floors
         </button>
 
         <div style={{ position: 'relative' }}>
