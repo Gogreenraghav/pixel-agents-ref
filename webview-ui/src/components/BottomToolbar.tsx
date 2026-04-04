@@ -16,6 +16,7 @@ interface BottomToolbarProps {
   onWebhookClick?: () => void;
   onAPIClick?: () => void;
   onFinanceClick?: () => void;
+  onMessagingClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -363,6 +364,7 @@ export function BottomToolbar({
   onWebhookClick,
   onAPIClick,
   onFinanceClick,
+  onMessagingClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -633,6 +635,21 @@ export function BottomToolbar({
           title="Finance Dashboard"
         >
           📊 Finance
+        </button>
+
+        {/* MESSAGING button */}
+        <button
+          onClick={onMessagingClick}
+          onMouseEnter={() => setHovered('messaging')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'messaging' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Messaging (Telegram/WhatsApp)"
+        >
+          📱 Connect
         </button>
 
         <div style={{ position: 'relative' }}>
