@@ -15,6 +15,7 @@ import { AITaskSuggestions } from './components/AITaskSuggestions.js';
 import { AIAutoPriority } from './components/AIAutoPriority.js';
 import { GameMechanics } from './components/GameMechanics.js';
 import { EmailSettings } from './components/EmailSettings.js';
+import { Unlockables } from './components/Unlockables.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -533,6 +534,7 @@ function App() {
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1105,6 +1107,11 @@ function App() {
         <EmailSettings onClose={() => setEmailOpen(false)} />
       )}
 
+      {/* Unlockables Shop */}
+      {unlockOpen && (
+        <Unlockables onClose={() => setUnlockOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1161,6 +1168,7 @@ function App() {
         onPriorityClick={() => setPriorityOpen(v => !v)}
         onGameClick={() => setGameOpen(v => !v)}
         onEmailClick={() => setEmailOpen(v => !v)}
+        onUnlockClick={() => setUnlockOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 

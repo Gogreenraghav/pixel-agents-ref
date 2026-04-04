@@ -22,6 +22,7 @@ interface BottomToolbarProps {
   onPriorityClick?: () => void;
   onGameClick?: () => void;
   onEmailClick?: () => void;
+  onUnlockClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -375,6 +376,7 @@ export function BottomToolbar({
   onPriorityClick,
   onGameClick,
   onEmailClick,
+  onUnlockClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -735,6 +737,21 @@ export function BottomToolbar({
           title="Email Integration"
         >
           📧 Email
+        </button>
+
+        {/* UNLOCK button */}
+        <button
+          onClick={onUnlockClick}
+          onMouseEnter={() => setHovered('unlock')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'unlock' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Unlockables Shop"
+        >
+          🎁 Shop
         </button>
 
         <div style={{ position: 'relative' }}>
