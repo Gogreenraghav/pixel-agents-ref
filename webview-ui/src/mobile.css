@@ -1,109 +1,79 @@
-/* Pixel Office - Bottom Toolbar - ALL UP, BIG BUTTONS */
+/* Pixel Office - Bottom Toolbar - VERY VISIBLE, AT TOP OF SCREEN */
 
-/* Toolbar - RAISED UP, BIG */
-.bottom-toolbar {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-start !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-  white-space: normal !important;
-  gap: 6px !important;
-  padding: 10px 12px !important;
-  align-items: flex-start !important;
-  align-content: flex-start !important;
-  position: relative !important;
-  min-height: auto !important;
-  background: #0a0a14 !important;
-  border-bottom: 4px solid #00ddff !important;
-  box-shadow: 0 -4px 20px rgba(0, 221, 255, 0.3) !important;
-}
-
-/* ALL BUTTONS - BIG, PROMINENT, NEVER HIDDEN */
-.bottom-toolbar button {
-  flex-shrink: 0 !important;
-  min-width: 85px !important;
-  max-width: 120px !important;
-  min-height: 55px !important;
-  padding: 10px 8px !important;
-  font-size: 12px !important;
-  font-weight: bold !important;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  text-align: center !important;
-  vertical-align: top !important;
-  line-height: 1.2 !important;
-  background: linear-gradient(180deg, #2a2a4e 0%, #1e1e3e 100%) !important;
-  border: 3px solid #4a4a7a !important;
-  border-radius: 4px !important;
-  color: #00ddff !important;
-  box-shadow: 3px 3px 0 #0a0a14, inset 0 1px 0 rgba(255,255,255,0.1) !important;
-  text-shadow: 0 0 10px currentColor !important;
-  cursor: pointer !important;
-}
-
-.bottom-toolbar button:hover {
-  background: linear-gradient(180deg, #3a3a6e 0%, #2e2e5e 100%) !important;
-  border-color: #00ddff !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 3px 5px 0 #0a0a14 !important;
-}
-
-.bottom-toolbar button:active {
-  transform: translateY(0) !important;
-  box-shadow: 2px 2px 0 #0a0a14 !important;
-}
-
-/* Desktop */
+/* Desktop - toolbar at TOP of window, very visible */
 @media (min-width: 769px) {
   .bottom-toolbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 99999 !important;
     background: #0a0a14 !important;
-    padding: 12px 15px !important;
-    gap: 8px !important;
-  }
-  
-  .bottom-toolbar button {
-    min-width: 90px !important;
-    max-width: 130px !important;
-    min-height: 60px !important;
-    font-size: 13px !important;
+    border-bottom: 4px solid #00ddff !important;
+    border-top: none !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    box-shadow: 0 4px 20px rgba(0, 221, 255, 0.5) !important;
+    min-height: 80px !important;
   }
 }
 
-/* Mobile */
+/* Mobile - toolbar at TOP */
 @media (max-width: 768px) {
   .bottom-toolbar {
     position: fixed !important;
-    bottom: 0 !important;
+    top: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 9999 !important;
+    z-index: 99999 !important;
     background: #0a0a14 !important;
-    border-top: 4px solid #00ddff !important;
-    padding: 10px !important;
-    max-height: 40vh !important;
+    border-bottom: 4px solid #00ddff !important;
+    padding: 8px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    box-shadow: 0 4px 20px rgba(0, 221, 255, 0.5) !important;
+    min-height: 70px !important;
+    max-height: 50vh !important;
     overflow-y: auto !important;
   }
-  
-  .bottom-toolbar button {
-    min-width: 70px !important;
-    max-width: 100px !important;
-    min-height: 50px !important;
-    font-size: 11px !important;
-  }
 }
 
-/* WORKSPACE AREA - RAISED UP */
-.pixel-office-workspace,
+/* ALL BUTTONS - BIG, VISIBLE, CYAN */
+.bottom-toolbar button {
+  flex-shrink: 0 !important;
+  min-width: 80px !important;
+  max-width: 110px !important;
+  min-height: 50px !important;
+  padding: 8px 6px !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  background: #1e1e3e !important;
+  border: 3px solid #00ddff !important;
+  border-radius: 4px !important;
+  color: #00ddff !important;
+  box-shadow: 2px 2px 0 #0a0a14 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  line-height: 1.2 !important;
+}
+
+.bottom-toolbar button:hover {
+  background: #2a2a4e !important;
+  border-color: #00ffff !important;
+  color: #00ffff !important;
+}
+
+/* Workspace area - give it space at bottom */
+.office-workspace,
 .office-canvas,
 canvas,
-#root > div > div {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
-/* Full height workspace */
-html, body, #root {
-  height: 100% !important;
-  overflow: hidden !important;
+.pixel-office {
+  margin-top: 80px !important;
+  padding-top: 10px !important;
 }
