@@ -4,6 +4,7 @@ import { BottomToolbar } from './components/BottomToolbar.js';
 import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
 import { AgentChatPanel } from './components/AgentChatPanel.js';
+import { AgentTooltip } from './components/AgentTooltip.js';
 import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
 import { GroupChat } from './components/GroupChat.js';
 import { WebhookSettings } from './components/WebhookSettings.js';
@@ -1258,6 +1259,17 @@ function App() {
           panRef={editor.panRef}
           onCloseAgent={handleCloseAgent}
           alwaysShowOverlay={alwaysShowOverlay}
+        />
+      )}
+
+      {/* Agent Tooltip - shows on hover */}
+      {!isDebugMode && (
+        <AgentTooltip
+          officeState={officeState}
+          agents={hiredAgents}
+          containerRef={containerRef}
+          zoom={editor.zoom}
+          panRef={editor.panRef}
         />
       )}
 
