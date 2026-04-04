@@ -15,14 +15,27 @@ const LS_INVOICES = 'pixeloffice_invoices';
 const LS_TRANSACTIONS = 'pixeloffice_transactions';
 const LS_ALERTS = 'pixeloffice_finance_alerts';
 const LS_BUDGET_CAPS = 'pixeloffice_budget_caps';
+const LS_TAX_CONFIG = 'pixeloffice_tax_config';
+
+interface TaxConfig {
+  vat: number;        // VAT % (e.g., 18)
+  tds: number;        // TDS % (e.g., 10)
+  serviceTax: number; // Service Tax %
+}
 
 interface BudgetCap {
   category: string; limit: number; spent: number;
 }
 interface Alert {
-  id: string; type: 'overbudget' | 'lowbalance' | 'due'; message: string; date: string; read: boolean;
+  id: string; type: 'overbudget' | 'lowbalance' | 'due' | 'tax'; message: string; date: string; read: boolean;
 }
 
+function loadTaxConfig(): TaxConfig {
+  try { return JSON.parse(localStorage.getItem(LS_TAX_CONFIG) ?? '{"vat":18,"tds":10,"serviceTax":15}'); } catch { return { vat: 18, tds: 10, serviceTax: 15 }; }
+}
+function saveTaxConfig(cfg: TaxConfig) {
+  try { localStorage.setItem(LS_TAX_CONFIG, JSON.stringify(cfg)); } catch {}
+}
 function loadInvoices(): Invoice[] {
   try { return JSON.parse(localStorage.getItem(LS_INVOICES) ?? '[]'); } catch { return []; }
 }
@@ -45,7 +58,7 @@ function saveBudgetCaps(caps: BudgetCap[]) {
   try { localStorage.setItem(LS_BUDGET_CAPS, JSON.stringify(caps)); } catch {}
 }
 
-type Tab = 'overview' | 'invoices' | 'reports' | 'alerts';
+type Tab = 'overview' | 'invoices' | 'reports' | 'alerts' | 'tax';
 
 export function FinancePanel({ onClose }: Props) {
   const [tab, setTab] = useState<Tab>('overview');
@@ -56,6 +69,8 @@ export function FinancePanel({ onClose }: Props) {
   const [showBudget, setShowBudget] = useState(false);
   const [budgetForm, setBudgetForm] = useState({ category: 'Payroll', limit: '' });
   const [alerts, setAlerts] = useState<Alert[]>(loadAlerts);
+  const [taxConfig, setTaxConfig] = useState<TaxConfig>(loadTaxConfig);
+  const [showTaxSettings, setShowTaxSettings] = useState(false);
 
   const balance = parseInt(localStorage.getItem('pixeloffice_balance') ?? '50000');
   const transactions = loadTransactions();
@@ -172,7 +187,7 @@ export function FinancePanel({ onClose }: Props) {
 
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '2px solid #223355' }}>
-          {(['overview', 'invoices', 'reports', 'alerts'] as Tab[]).map(t => (
+          {(['overview', 'invoices', 'reports', 'alerts', 'tax'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '12px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold',
               background: tab === t ? '#112233' : 'transparent',
@@ -180,7 +195,7 @@ export function FinancePanel({ onClose }: Props) {
               border: 'none', borderBottom: tab === t ? '3px solid #66ddff' : '3px solid transparent',
               cursor: 'pointer',
             }}>
-              {t === 'overview' ? '📈 P&L' : t === 'invoices' ? '🧾 Invoices' : t === 'reports' ? '📋 Reports' : `🚨 Alerts${unreadAlerts > 0 ? ` (${unreadAlerts})` : ''}`}
+              {t === 'overview' ? '📈 P&L' : t === 'invoices' ? '🧾 Invoices' : t === 'reports' ? '📋 Reports' : t === 'alerts' ? `🚨 Alerts${unreadAlerts > 0 ? ` (${unreadAlerts})` : ''}` : '🧾 Tax'}
             </button>
           ))}
         </div>
@@ -390,6 +405,138 @@ export function FinancePanel({ onClose }: Props) {
                   <span style={{ fontSize: '15px', color: '#556677' }}>Tip: Set budget limits in the Overview tab to get alerts when you overspend.</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === 'tax' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Tax Settings */}
+              <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>⚙️ Tax Configuration</div>
+                  <button onClick={() => setShowTaxSettings(v => !v)} style={{ padding: '8px 16px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
+                    {showTaxSettings ? 'Hide' : 'Edit'}
+                  </button>
+                </div>
+                {showTaxSettings && (
+                  <div style={{ background: '#0d0d1e', border: '1px solid #00ff88', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>VAT (%)</div>
+                        <input type="number" value={taxConfig.vat} onChange={e => setTaxConfig(c => ({ ...c, vat: parseInt(e.target.value) || 0 }))} style={inp} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>TDS (%)</div>
+                        <input type="number" value={taxConfig.tds} onChange={e => setTaxConfig(c => ({ ...c, tds: parseInt(e.target.value) || 0 }))} style={inp} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>Service Tax (%)</div>
+                        <input type="number" value={taxConfig.serviceTax} onChange={e => setTaxConfig(c => ({ ...c, serviceTax: parseInt(e.target.value) || 0 }))} style={inp} />
+                      </div>
+                    </div>
+                    <button onClick={() => { saveTaxConfig(taxConfig); setShowTaxSettings(false); }} style={{ padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>💾 Save Tax Settings</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Tax Calculations */}
+              <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>📊 Tax Breakdown</div>
+                
+                {/* Invoice-based tax */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: '18px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 12 }}>🧾 Invoice Taxes</div>
+                  <div style={{ background: '#0a0a18', border: '1px solid #223355', padding: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Total Invoice Amount</span>
+                      <span style={{ fontSize: '17px', color: '#00ff88', fontWeight: 'bold' }}>${invoiceTotal.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>VAT ({taxConfig.vat}%)</span>
+                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.vat / 100).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>TDS ({taxConfig.tds}%)</span>
+                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.tds / 100).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Service Tax ({taxConfig.serviceTax}%)</span>
+                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.serviceTax / 100).toLocaleString()}</span>
+                    </div>
+                    <div style={{ borderTop: '2px solid #334466', marginTop: 8, paddingTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold' }}>Net After Tax</span>
+                        <span style={{ fontSize: '20px', color: '#00ff88', fontWeight: 'bold' }}>
+                          ${(invoiceTotal - (invoiceTotal * (taxConfig.vat + taxConfig.tds + taxConfig.serviceTax) / 100)).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pending invoice tax */}
+                {invoicePending > 0 && (
+                  <div style={{ background: '#0a0a18', border: '1px solid #ffaa44', padding: '14px', marginBottom: 16 }}>
+                    <div style={{ fontSize: '18px', color: '#ffaa44', fontWeight: 'bold', marginBottom: 10 }}>⏳ Pending Invoice Tax Liability</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Pending Amount</span>
+                      <span style={{ fontSize: '17px', color: '#ffdd44', fontWeight: 'bold' }}>${invoicePending.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Estimated Tax Holdback ({taxConfig.tds}%)</span>
+                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>${(invoicePending * taxConfig.tds / 100).toLocaleString()}</span>
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 8 }}>💡 TDS is usually deducted by clients before payment</div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div style={{ background: '#0d0d1e', border: '2px solid #223355', padding: '16px' }}>
+                  <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 12 }}>📋 Tax Summary</div>
+                  {invoices.filter(i => i.status === 'paid').map(inv => {
+                    const invTax = inv.total * (taxConfig.vat + taxConfig.tds + taxConfig.serviceTax) / 100;
+                    const netAmount = inv.total - invTax;
+                    return (
+                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '8px', background: '#0a0a18' }}>
+                        <div>
+                          <div style={{ fontSize: '15px', color: '#aaddff', fontWeight: 'bold' }}>{inv.clientName}</div>
+                          <div style={{ fontSize: '13px', color: '#667788' }}>{inv.date}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '14px', color: '#ff4444' }}>Tax: -${invTax.toLocaleString()}</div>
+                          <div style={{ fontSize: '15px', color: '#00ff88', fontWeight: 'bold' }}>Net: ${netAmount.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {invoices.filter(i => i.status === 'paid').length === 0 && (
+                    <div style={{ color: '#445566', fontSize: '15px' }}>No paid invoices to calculate tax.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tax Calendar */}
+              <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>📅 Tax Calendar</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                  <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>🗓️ GST Quarterly</div>
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 20th of next quarter month</div>
+                  </div>
+                  <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>📤 TDS Quarterly</div>
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 30th of next quarter month</div>
+                  </div>
+                  <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Annual Return</div>
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 31st July (FY end: March)</div>
+                  </div>
+                  <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>✍️ Tax Audit</div>
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 30th September (if applicable)</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
