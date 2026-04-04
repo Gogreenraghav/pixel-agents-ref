@@ -19,6 +19,7 @@ interface BottomToolbarProps {
   onMessagingClick?: () => void;
   onReportsClick?: () => void;
   onSuggestionsClick?: () => void;
+  onPriorityClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -369,6 +370,7 @@ export function BottomToolbar({
   onMessagingClick,
   onReportsClick,
   onSuggestionsClick,
+  onPriorityClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -684,6 +686,21 @@ export function BottomToolbar({
           title="AI Task Suggestions"
         >
           💡 Ideas
+        </button>
+
+        {/* AI PRIORITY button */}
+        <button
+          onClick={onPriorityClick}
+          onMouseEnter={() => setHovered('priority')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'priority' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="AI Auto-Prioritization"
+        >
+          🎯 Priority
         </button>
 
         <div style={{ position: 'relative' }}>
