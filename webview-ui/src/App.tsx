@@ -31,7 +31,7 @@ import type { OfficeEvent } from './components/OfficeEvents.js';
 import { DebugView } from './components/DebugView.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import { PULSE_ANIMATION_DURATION_SEC } from './constants.js';
-import { setSoundEnabled } from './notificationSound.js';
+import { setSoundEnabled, playSuccessSound, playFireSound, playLevelUpSound } from './notificationSound.js';
 import { setGameSpeedMultiplier } from './office/engine/gameLoop.js';
 import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
@@ -733,6 +733,7 @@ function App() {
       tasksCompleted: 0,
       aiConfig,
     });
+    playSuccessSound(); // 🎉 Play hire sound
   }, []);
 
   const handleAgentStatusChange = useCallback((id: string, status: string, zone: string) => {
@@ -745,6 +746,7 @@ function App() {
     const newLevel = (agent.level ?? 1) + 1;
     const raise = Math.round((agent.salary ?? 4000) * 0.15);
     updateHiredAgent(id, { level: newLevel, salary: (agent.salary ?? 4000) + raise });
+    playLevelUpSound(); // ⭐ Play level up sound
   }, []);
 
   const handleDemoteAgent = useCallback((id: string) => {
@@ -865,6 +867,7 @@ function App() {
         data: { type: 'agentClosed', id: pixelId }
       }));
     }
+    playFireSound(); // 👋 Play fire sound
   }, []);
 
   // Show migration notice once layout reset is detected
