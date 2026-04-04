@@ -18,10 +18,93 @@ const LS_BUDGET_CAPS = 'pixeloffice_budget_caps';
 const LS_TAX_CONFIG = 'pixeloffice_tax_config';
 
 interface TaxConfig {
-  vat: number;        // VAT % (e.g., 18)
-  tds: number;        // TDS % (e.g., 10)
-  serviceTax: number; // Service Tax %
+  country: string;
+  state: string;
+  vat: number;
+  tds: number;
+  serviceTax: number;
+  incomeTax: number;
 }
+
+const TAX_SYSTEMS: Record<string, { name: string; states: Record<string, { name: string; vat: number; tds: number; serviceTax: number; incomeTax: number }> }> = {
+  india: {
+    name: '🇮🇳 India',
+    states: {
+      delhi: { name: 'Delhi', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      maharashtra: { name: 'Maharashtra', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      karnataka: { name: 'Karnataka', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      tamilnadu: { name: 'Tamil Nadu', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      gujarat: { name: 'Gujarat', vat: 18, tds: 10, serviceTax: 15, incomeTax: 30 },
+      up: { name: 'Uttar Pradesh', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      westbengal: { name: 'West Bengal', vat: 18, tds: 10, serviceTax: 15, incomeTax: 30 },
+      rajasthan: { name: 'Rajasthan', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      telangana: { name: 'Telangana', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+      haryana: { name: 'Haryana', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 },
+    }
+  },
+  usa: {
+    name: '🇺🇸 USA',
+    states: {
+      california: { name: 'California', vat: 7.25, tds: 0, serviceTax: 0, incomeTax: 13.3 },
+      texas: { name: 'Texas', vat: 6.25, tds: 0, serviceTax: 0, incomeTax: 0 },
+      newyork: { name: 'New York', vat: 8, tds: 0, serviceTax: 4, incomeTax: 10.9 },
+      florida: { name: 'Florida', vat: 6, tds: 0, serviceTax: 0, incomeTax: 0 },
+      washington: { name: 'Washington', vat: 6.5, tds: 0, serviceTax: 0, incomeTax: 0 },
+      nevada: { name: 'Nevada', vat: 6.85, tds: 0, serviceTax: 0, incomeTax: 0 },
+      illinois: { name: 'Illinois', vat: 6.25, tds: 0, serviceTax: 0, incomeTax: 4.95 },
+    }
+  },
+  uk: {
+    name: '🇬🇧 UK',
+    states: {
+      england: { name: 'England', vat: 20, tds: 0, serviceTax: 0, incomeTax: 40 },
+      scotland: { name: 'Scotland', vat: 20, tds: 0, serviceTax: 0, incomeTax: 46 },
+      wales: { name: 'Wales', vat: 20, tds: 0, serviceTax: 0, incomeTax: 40 },
+      northernireland: { name: 'Northern Ireland', vat: 20, tds: 0, serviceTax: 0, incomeTax: 40 },
+    }
+  },
+  germany: {
+    name: '🇩🇪 Germany',
+    states: {
+      berlin: { name: 'Berlin', vat: 19, tds: 0, serviceTax: 0, incomeTax: 45 },
+      bayern: { name: 'Bayern', vat: 19, tds: 0, serviceTax: 0, incomeTax: 45 },
+      hessen: { name: 'Hessen', vat: 19, tds: 0, serviceTax: 0, incomeTax: 45 },
+      nordrhein: { name: 'Nordrhein-Westfalen', vat: 19, tds: 0, serviceTax: 0, incomeTax: 45 },
+    }
+  },
+  canada: {
+    name: '🇨🇦 Canada',
+    states: {
+      ontario: { name: 'Ontario', vat: 13, tds: 0, serviceTax: 0, incomeTax: 53.5 },
+      quebec: { name: 'Quebec', vat: 14.975, tds: 0, serviceTax: 9.975, incomeTax: 53.31 },
+      bc: { name: 'British Columbia', vat: 12, tds: 0, serviceTax: 0, incomeTax: 53.5 },
+      alberta: { name: 'Alberta', vat: 5, tds: 0, serviceTax: 0, incomeTax: 48 },
+    }
+  },
+  australia: {
+    name: '🇦🇺 Australia',
+    states: {
+      nsw: { name: 'New South Wales', vat: 10, tds: 0, serviceTax: 0, incomeTax: 45 },
+      victoria: { name: 'Victoria', vat: 10, tds: 0, serviceTax: 0, incomeTax: 45 },
+      queensland: { name: 'Queensland', vat: 10, tds: 0, serviceTax: 0, incomeTax: 45 },
+      wa: { name: 'Western Australia', vat: 10, tds: 0, serviceTax: 0, incomeTax: 45 },
+    }
+  },
+  uae: {
+    name: '🇦🇪 UAE',
+    states: {
+      dubai: { name: 'Dubai', vat: 5, tds: 0, serviceTax: 0, incomeTax: 0 },
+      abudhabi: { name: 'Abu Dhabi', vat: 5, tds: 0, serviceTax: 0, incomeTax: 0 },
+      sharjah: { name: 'Sharjah', vat: 0, tds: 0, serviceTax: 0, incomeTax: 0 },
+    }
+  },
+  singapore: {
+    name: '🇸🇬 Singapore',
+    states: {
+      singapore: { name: 'Singapore', vat: 8, tds: 0, serviceTax: 0, incomeTax: 22 },
+    }
+  },
+};
 
 interface BudgetCap {
   category: string; limit: number; spent: number;
@@ -31,7 +114,14 @@ interface Alert {
 }
 
 function loadTaxConfig(): TaxConfig {
-  try { return JSON.parse(localStorage.getItem(LS_TAX_CONFIG) ?? '{"vat":18,"tds":10,"serviceTax":15}'); } catch { return { vat: 18, tds: 10, serviceTax: 15 }; }
+  const stored = localStorage.getItem(LS_TAX_CONFIG);
+  if (stored) {
+    try {
+      const cfg = JSON.parse(stored);
+      if (cfg.country && cfg.state) return cfg;
+    } catch {}
+  }
+  return { country: 'india', state: 'delhi', vat: 18, tds: 10, serviceTax: 18, incomeTax: 30 };
 }
 function saveTaxConfig(cfg: TaxConfig) {
   try { localStorage.setItem(LS_TAX_CONFIG, JSON.stringify(cfg)); } catch {}
@@ -70,7 +160,6 @@ export function FinancePanel({ onClose }: Props) {
   const [budgetForm, setBudgetForm] = useState({ category: 'Payroll', limit: '' });
   const [alerts, setAlerts] = useState<Alert[]>(loadAlerts);
   const [taxConfig, setTaxConfig] = useState<TaxConfig>(loadTaxConfig);
-  const [showTaxSettings, setShowTaxSettings] = useState(false);
 
   const balance = parseInt(localStorage.getItem('pixeloffice_balance') ?? '50000');
   const transactions = loadTransactions();
@@ -410,33 +499,91 @@ export function FinancePanel({ onClose }: Props) {
 
           {tab === 'tax' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Tax Settings */}
+              {/* Tax Settings - Country & State Selection */}
               <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold' }}>⚙️ Tax Configuration</div>
-                  <button onClick={() => setShowTaxSettings(v => !v)} style={{ padding: '8px 16px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
-                    {showTaxSettings ? 'Hide' : 'Edit'}
-                  </button>
-                </div>
-                {showTaxSettings && (
-                  <div style={{ background: '#0d0d1e', border: '1px solid #00ff88', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                      <div>
-                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>VAT (%)</div>
-                        <input type="number" value={taxConfig.vat} onChange={e => setTaxConfig(c => ({ ...c, vat: parseInt(e.target.value) || 0 }))} style={inp} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>TDS (%)</div>
-                        <input type="number" value={taxConfig.tds} onChange={e => setTaxConfig(c => ({ ...c, tds: parseInt(e.target.value) || 0 }))} style={inp} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>Service Tax (%)</div>
-                        <input type="number" value={taxConfig.serviceTax} onChange={e => setTaxConfig(c => ({ ...c, serviceTax: parseInt(e.target.value) || 0 }))} style={inp} />
-                      </div>
-                    </div>
-                    <button onClick={() => { saveTaxConfig(taxConfig); setShowTaxSettings(false); }} style={{ padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>💾 Save Tax Settings</button>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>🌍 Tax Jurisdiction</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>Country</div>
+                    <select 
+                      value={taxConfig.country} 
+                      onChange={e => {
+                        const country = e.target.value;
+                        const states = Object.keys(TAX_SYSTEMS[country]?.states || {});
+                        const firstState = states[0] || '';
+                        const stateData = TAX_SYSTEMS[country]?.states[firstState];
+                        setTaxConfig(c => ({
+                          ...c,
+                          country,
+                          state: firstState,
+                          vat: stateData?.vat || 0,
+                          tds: stateData?.tds || 0,
+                          serviceTax: stateData?.serviceTax || 0,
+                          incomeTax: stateData?.incomeTax || 0,
+                        }));
+                      }} 
+                      style={{ ...inp, cursor: 'pointer' }}
+                    >
+                      {Object.entries(TAX_SYSTEMS).map(([key, val]) => (
+                        <option key={key} value={key}>{val.name}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  <div>
+                    <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>
+                      {taxConfig.country === 'usa' ? 'State' : taxConfig.country === 'uk' ? 'Region' : taxConfig.country === 'canada' ? 'Province' : taxConfig.country === 'australia' ? 'State' : 'State'}
+                    </div>
+                    <select 
+                      value={taxConfig.state} 
+                      onChange={e => {
+                        const state = e.target.value;
+                        const stateData = TAX_SYSTEMS[taxConfig.country]?.states[state];
+                        if (stateData) {
+                          setTaxConfig(c => ({
+                            ...c,
+                            state,
+                            vat: stateData.vat,
+                            tds: stateData.tds,
+                            serviceTax: stateData.serviceTax,
+                            incomeTax: stateData.incomeTax,
+                          }));
+                        }
+                      }} 
+                      style={{ ...inp, cursor: 'pointer' }}
+                    >
+                      {Object.entries(TAX_SYSTEMS[taxConfig.country]?.states || {}).map(([key, val]) => (
+                        <option key={key} value={key}>{val.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Current Tax Rates */}
+                <div style={{ background: '#0d0d1e', border: '1px solid #223355', padding: '14px' }}>
+                  <div style={{ fontSize: '16px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 10 }}>📊 Current Tax Rates for {TAX_SYSTEMS[taxConfig.country]?.states[taxConfig.state]?.name || taxConfig.state}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', color: '#00ff88', fontWeight: 'bold' }}>{taxConfig.vat}%</div>
+                      <div style={{ fontSize: '13px', color: '#667788' }}>VAT/GST</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', color: '#ff8844', fontWeight: 'bold' }}>{taxConfig.tds}%</div>
+                      <div style={{ fontSize: '13px', color: '#667788' }}>TDS</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', color: '#66ddff', fontWeight: 'bold' }}>{taxConfig.serviceTax}%</div>
+                      <div style={{ fontSize: '13px', color: '#667788' }}>Service Tax</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', color: '#ff4444', fontWeight: 'bold' }}>{taxConfig.incomeTax}%</div>
+                      <div style={{ fontSize: '13px', color: '#667788' }}>Income Tax</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <button onClick={() => saveTaxConfig(taxConfig)} style={{ marginTop: 12, width: '100%', padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
+                  💾 Save Tax Settings
+                </button>
               </div>
 
               {/* Tax Calculations */}
@@ -445,29 +592,41 @@ export function FinancePanel({ onClose }: Props) {
                 
                 {/* Invoice-based tax */}
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: '18px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 12 }}>🧾 Invoice Taxes</div>
+                  <div style={{ fontSize: '18px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 12 }}>🧾 Invoice Taxes ({TAX_SYSTEMS[taxConfig.country]?.name})</div>
                   <div style={{ background: '#0a0a18', border: '1px solid #223355', padding: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: '16px', color: '#aaddff' }}>Total Invoice Amount</span>
                       <span style={{ fontSize: '17px', color: '#00ff88', fontWeight: 'bold' }}>${invoiceTotal.toLocaleString()}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: '16px', color: '#aaddff' }}>VAT ({taxConfig.vat}%)</span>
-                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.vat / 100).toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: '16px', color: '#aaddff' }}>TDS ({taxConfig.tds}%)</span>
-                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.tds / 100).toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Service Tax ({taxConfig.serviceTax}%)</span>
-                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.serviceTax / 100).toLocaleString()}</span>
-                    </div>
+                    {taxConfig.vat > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: '16px', color: '#aaddff' }}>VAT/GST ({taxConfig.vat}%)</span>
+                        <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.vat / 100).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {taxConfig.tds > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: '16px', color: '#aaddff' }}>TDS ({taxConfig.tds}%)</span>
+                        <span style={{ fontSize: '17px', color: '#ff8844', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.tds / 100).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {taxConfig.serviceTax > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: '16px', color: '#aaddff' }}>Service Tax ({taxConfig.serviceTax}%)</span>
+                        <span style={{ fontSize: '17px', color: '#66ddff', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.serviceTax / 100).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {taxConfig.incomeTax > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: '16px', color: '#aaddff' }}>Income Tax ({taxConfig.incomeTax}%)</span>
+                        <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>-${(invoiceTotal * taxConfig.incomeTax / 100).toLocaleString()}</span>
+                      </div>
+                    )}
                     <div style={{ borderTop: '2px solid #334466', marginTop: 8, paddingTop: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold' }}>Net After Tax</span>
                         <span style={{ fontSize: '20px', color: '#00ff88', fontWeight: 'bold' }}>
-                          ${(invoiceTotal - (invoiceTotal * (taxConfig.vat + taxConfig.tds + taxConfig.serviceTax) / 100)).toLocaleString()}
+                          ${(invoiceTotal - (invoiceTotal * (taxConfig.vat + taxConfig.tds + taxConfig.serviceTax + taxConfig.incomeTax) / 100)).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -482,29 +641,36 @@ export function FinancePanel({ onClose }: Props) {
                       <span style={{ fontSize: '16px', color: '#aaddff' }}>Pending Amount</span>
                       <span style={{ fontSize: '17px', color: '#ffdd44', fontWeight: 'bold' }}>${invoicePending.toLocaleString()}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: '16px', color: '#aaddff' }}>Estimated Tax Holdback ({taxConfig.tds}%)</span>
-                      <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>${(invoicePending * taxConfig.tds / 100).toLocaleString()}</span>
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 8 }}>💡 TDS is usually deducted by clients before payment</div>
+                    {taxConfig.tds > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: '16px', color: '#aaddff' }}>Estimated TDS Holdback ({taxConfig.tds}%)</span>
+                        <span style={{ fontSize: '17px', color: '#ff4444', fontWeight: 'bold' }}>${(invoicePending * taxConfig.tds / 100).toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 8 }}>💡 TDS/GST amounts are usually adjusted by clients before payment</div>
                   </div>
                 )}
 
                 {/* Summary */}
                 <div style={{ background: '#0d0d1e', border: '2px solid #223355', padding: '16px' }}>
-                  <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 12 }}>📋 Tax Summary</div>
+                  <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 12 }}>📋 Per Invoice Tax Summary</div>
                   {invoices.filter(i => i.status === 'paid').map(inv => {
-                    const invTax = inv.total * (taxConfig.vat + taxConfig.tds + taxConfig.serviceTax) / 100;
+                    const invVat = inv.total * taxConfig.vat / 100;
+                    const invTds = inv.total * taxConfig.tds / 100;
+                    const invService = inv.total * taxConfig.serviceTax / 100;
+                    const invIncome = inv.total * taxConfig.incomeTax / 100;
+                    const invTax = invVat + invTds + invService + invIncome;
                     const netAmount = inv.total - invTax;
                     return (
-                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '8px', background: '#0a0a18' }}>
+                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '10px', background: '#0a0a18' }}>
                         <div>
                           <div style={{ fontSize: '15px', color: '#aaddff', fontWeight: 'bold' }}>{inv.clientName}</div>
                           <div style={{ fontSize: '13px', color: '#667788' }}>{inv.date}</div>
+                          <div style={{ fontSize: '13px', color: '#8899aa' }}>Gross: ${inv.total.toLocaleString()}</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '14px', color: '#ff4444' }}>Tax: -${invTax.toLocaleString()}</div>
-                          <div style={{ fontSize: '15px', color: '#00ff88', fontWeight: 'bold' }}>Net: ${netAmount.toLocaleString()}</div>
+                          <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>Net: ${netAmount.toLocaleString()}</div>
                         </div>
                       </div>
                     );
@@ -515,27 +681,105 @@ export function FinancePanel({ onClose }: Props) {
                 </div>
               </div>
 
-              {/* Tax Calendar */}
+              {/* Tax Calendar - Country Specific */}
               <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
-                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>📅 Tax Calendar</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-                  <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>🗓️ GST Quarterly</div>
-                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 20th of next quarter month</div>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>📅 Tax Calendar ({TAX_SYSTEMS[taxConfig.country]?.name})</div>
+                {taxConfig.country === 'india' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>🗓️ GST Quarterly</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 20th of next quarter month</div>
+                      <div style={{ fontSize: '12px', color: '#445566', marginTop: 4 }}>GSTR-1: 11th, GSTR-3B: 20th</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>📤 TDS Quarterly</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 30th of next quarter month</div>
+                      <div style={{ fontSize: '12px', color: '#445566', marginTop: 4 }}>Form 24Q, 27Q</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Annual Return</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 31st July (FY end: March)</div>
+                      <div style={{ fontSize: '12px', color: '#445566', marginTop: 4 }}>GSTR-9, GSTR-9C</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>✍️ Income Tax Return</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 31st July / 31st Oct</div>
+                      <div style={{ fontSize: '12px', color: '#445566', marginTop: 4 }}>ITR-4, ITR-6</div>
+                    </div>
                   </div>
-                  <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>📤 TDS Quarterly</div>
-                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 30th of next quarter month</div>
+                )}
+                {taxConfig.country === 'usa' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>📤 Estimated Taxes</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 15th Apr, Jun, Sep, Jan</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Annual Return</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: April 15th</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>🗓️ Sales Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Varies by state - monthly/quarterly</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>✍️ Payroll Taxes</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Federal: monthly / State: varies</div>
+                    </div>
                   </div>
-                  <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Annual Return</div>
-                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 31st July (FY end: March)</div>
+                )}
+                {(taxConfig.country === 'uk' || taxConfig.country === 'germany' || taxConfig.country === 'singapore') && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>📤 VAT Return</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Quarterly (UK) / Monthly (DE)</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Corporation Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>9 months + 1 day after FY end</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>✍️ Income Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Self-assessment deadline</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>🏢 Payroll Taxes</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Monthly payments</div>
+                    </div>
                   </div>
-                  <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>✍️ Tax Audit</div>
-                    <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Due: 30th September (if applicable)</div>
+                )}
+                {taxConfig.country === 'uae' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                    <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', color: '#00ff88', fontWeight: 'bold' }}>✅ No Corporate Income Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>UAE has no personal or corporate income tax (except specific industries)</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>🗓️ VAT (5%)</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Quarterly returns - due within 28 days of quarter end</div>
+                    </div>
                   </div>
-                </div>
+                )}
+                {(taxConfig.country === 'canada' || taxConfig.country === 'australia') && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>📤 GST/HST Return</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>{taxConfig.country === 'canada' ? 'Monthly/Quarterly' : 'Monthly/BAS'}</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #ff4444', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ff4444', fontWeight: 'bold' }}>✍️ Income Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Annual return due</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Payroll Taxes</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Regular remittances</div>
+                    </div>
+                    <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>🏢 State Tax</div>
+                      <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Varies by state/province</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
