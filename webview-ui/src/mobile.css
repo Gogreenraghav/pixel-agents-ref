@@ -132,7 +132,7 @@
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Bottom toolbar - HORIZONTAL SCROLL */
+  /* Bottom toolbar - HORIZONTAL SCROLL WITH SCROLL INDICATOR */
   .bottom-toolbar,
   [class*="toolbar"],
   [style*="BottomToolbar"],
@@ -142,9 +142,8 @@
     left: 0 !important;
     right: 0 !important;
     z-index: 9999 !important;
-    height: auto !important;
-    min-height: 90px !important;
-    padding: 10px !important;
+    height: 120px !important;
+    padding: 10px 10px 20px 10px !important;
     background: #0a0a18 !important;
     border-top: 3px solid #334466 !important;
     overflow-x: auto !important;
@@ -153,21 +152,65 @@
     display: flex !important;
     flex-wrap: nowrap !important;
     justify-content: flex-start !important;
-    gap: 6px !important;
+    gap: 8px !important;
     white-space: nowrap !important;
+    /* Scroll shadow indicator */
+    mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+  }
+  
+  /* Right scroll indicator */
+  .bottom-toolbar::after,
+  [class*="toolbar"]::after,
+  div[style*="position: fixed"][style*="bottom: 0"]::after {
+    content: "→";
+    position: fixed;
+    right: 5px;
+    bottom: 40px;
+    color: #66ddff;
+    font-size: 24px;
+    font-weight: bold;
+    animation: scrollHint 1.5s infinite;
+    z-index: 10000;
+    pointer-events: none;
+    text-shadow: 0 0 10px #66ddff;
+  }
+  
+  @keyframes scrollHint {
+    0%, 100% { opacity: 1; transform: translateX(0); }
+    50% { opacity: 0.5; transform: translateX(8px); }
   }
   
   /* Bottom toolbar buttons - horizontal scroll */
   .bottom-toolbar button,
   [style*="position: fixed"][style*="bottom: 0"] button,
   div[style*="position: fixed"][style*="bottom: 0"] > * {
-    min-width: 70px !important;
-    max-width: 90px !important;
-    min-height: 50px !important;
-    padding: 10px 8px !important;
-    font-size: 11px !important;
+    min-width: 80px !important;
+    max-width: 100px !important;
+    min-height: 60px !important;
+    padding: 12px 10px !important;
+    font-size: 12px !important;
     flex-shrink: 0 !important;
     white-space: nowrap !important;
+  }
+  
+  /* Visible scrollbar for bottom toolbar */
+  .bottom-toolbar::-webkit-scrollbar,
+  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar {
+    height: 8px !important;
+    display: block !important;
+  }
+  
+  .bottom-toolbar::-webkit-scrollbar-track,
+  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar-track {
+    background: #1a1a2a !important;
+    border-radius: 4px !important;
+  }
+  
+  .bottom-toolbar::-webkit-scrollbar-thumb,
+  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar-thumb {
+    background: #66ddff !important;
+    border-radius: 4px !important;
   }
   
   /* Scroll to top on load */
