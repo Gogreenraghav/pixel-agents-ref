@@ -499,91 +499,216 @@ export function FinancePanel({ onClose }: Props) {
 
           {tab === 'tax' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Tax Settings - Country & State Selection */}
+              {/* Tax Mode Selection */}
               <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
-                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>🌍 Tax Jurisdiction</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div>
-                    <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>Country</div>
-                    <select 
-                      value={taxConfig.country} 
-                      onChange={e => {
-                        const country = e.target.value;
-                        const states = Object.keys(TAX_SYSTEMS[country]?.states || {});
-                        const firstState = states[0] || '';
-                        const stateData = TAX_SYSTEMS[country]?.states[firstState];
-                        setTaxConfig(c => ({
-                          ...c,
-                          country,
-                          state: firstState,
-                          vat: stateData?.vat || 0,
-                          tds: stateData?.tds || 0,
-                          serviceTax: stateData?.serviceTax || 0,
-                          incomeTax: stateData?.incomeTax || 0,
-                        }));
-                      }} 
-                      style={{ ...inp, cursor: 'pointer' }}
-                    >
-                      {Object.entries(TAX_SYSTEMS).map(([key, val]) => (
-                        <option key={key} value={key}>{val.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>
-                      {taxConfig.country === 'usa' ? 'State' : taxConfig.country === 'uk' ? 'Region' : taxConfig.country === 'canada' ? 'Province' : taxConfig.country === 'australia' ? 'State' : 'State'}
-                    </div>
-                    <select 
-                      value={taxConfig.state} 
-                      onChange={e => {
-                        const state = e.target.value;
-                        const stateData = TAX_SYSTEMS[taxConfig.country]?.states[state];
-                        if (stateData) {
-                          setTaxConfig(c => ({
-                            ...c,
-                            state,
-                            vat: stateData.vat,
-                            tds: stateData.tds,
-                            serviceTax: stateData.serviceTax,
-                            incomeTax: stateData.incomeTax,
-                          }));
-                        }
-                      }} 
-                      style={{ ...inp, cursor: 'pointer' }}
-                    >
-                      {Object.entries(TAX_SYSTEMS[taxConfig.country]?.states || {}).map(([key, val]) => (
-                        <option key={key} value={key}>{val.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>⚙️ Tax Configuration</div>
                 
-                {/* Current Tax Rates */}
-                <div style={{ background: '#0d0d1e', border: '1px solid #223355', padding: '14px' }}>
-                  <div style={{ fontSize: '16px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 10 }}>📊 Current Tax Rates for {TAX_SYSTEMS[taxConfig.country]?.states[taxConfig.state]?.name || taxConfig.state}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', color: '#00ff88', fontWeight: 'bold' }}>{taxConfig.vat}%</div>
-                      <div style={{ fontSize: '13px', color: '#667788' }}>VAT/GST</div>
+                {/* Mode Toggle */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <button 
+                    onClick={() => {
+                      const country = 'india';
+                      const states = Object.keys(TAX_SYSTEMS[country]?.states || {});
+                      const firstState = states[0] || '';
+                      const stateData = TAX_SYSTEMS[country]?.states[firstState];
+                      setTaxConfig(c => ({
+                        ...c,
+                        country: 'custom',
+                        state: 'custom',
+                        vat: stateData?.vat || 0,
+                        tds: stateData?.tds || 0,
+                        serviceTax: stateData?.serviceTax || 0,
+                        incomeTax: stateData?.incomeTax || 0,
+                      }));
+                    }}
+                    style={{
+                      flex: 1, padding: '12px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
+                      background: taxConfig.country === 'custom' ? '#1a1a00' : '#0a0a14',
+                      color: taxConfig.country === 'custom' ? '#ffdd44' : '#667788',
+                      border: `2px solid ${taxConfig.country === 'custom' ? '#ffdd44' : '#334466'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✏️ Custom
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const country = 'india';
+                      const states = Object.keys(TAX_SYSTEMS[country]?.states || {});
+                      const firstState = states[0] || '';
+                      const stateData = TAX_SYSTEMS[country]?.states[firstState];
+                      setTaxConfig(c => ({
+                        ...c,
+                        country,
+                        state: firstState,
+                        vat: stateData?.vat || 0,
+                        tds: stateData?.tds || 0,
+                        serviceTax: stateData?.serviceTax || 0,
+                        incomeTax: stateData?.incomeTax || 0,
+                      }));
+                    }}
+                    style={{
+                      flex: 1, padding: '12px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
+                      background: taxConfig.country !== 'custom' ? '#001a1a' : '#0a0a14',
+                      color: taxConfig.country !== 'custom' ? '#00ff88' : '#667788',
+                      border: `2px solid ${taxConfig.country !== 'custom' ? '#00ff88' : '#334466'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🌍 Predefined
+                  </button>
+                </div>
+
+                {taxConfig.country === 'custom' ? (
+                  /* Custom Tax Input */
+                  <div style={{ background: '#0d0d1e', border: '1px solid #ffdd44', padding: '16px' }}>
+                    <div style={{ fontSize: '16px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 12 }}>✏️ Set Your Custom Tax Rates</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#8899aa', marginBottom: 6 }}>VAT/GST (%)</div>
+                        <input 
+                          type="number" 
+                          value={taxConfig.vat} 
+                          onChange={e => setTaxConfig(c => ({ ...c, vat: parseFloat(e.target.value) || 0 }))} 
+                          style={inp} 
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#8899aa', marginBottom: 6 }}>TDS (%)</div>
+                        <input 
+                          type="number" 
+                          value={taxConfig.tds} 
+                          onChange={e => setTaxConfig(c => ({ ...c, tds: parseFloat(e.target.value) || 0 }))} 
+                          style={inp} 
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#8899aa', marginBottom: 6 }}>Service Tax (%)</div>
+                        <input 
+                          type="number" 
+                          value={taxConfig.serviceTax} 
+                          onChange={e => setTaxConfig(c => ({ ...c, serviceTax: parseFloat(e.target.value) || 0 }))} 
+                          style={inp} 
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', color: '#8899aa', marginBottom: 6 }}>Income Tax (%)</div>
+                        <input 
+                          type="number" 
+                          value={taxConfig.incomeTax} 
+                          onChange={e => setTaxConfig(c => ({ ...c, incomeTax: parseFloat(e.target.value) || 0 }))} 
+                          style={inp} 
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
-                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', color: '#ff8844', fontWeight: 'bold' }}>{taxConfig.tds}%</div>
-                      <div style={{ fontSize: '13px', color: '#667788' }}>TDS</div>
-                    </div>
-                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', color: '#66ddff', fontWeight: 'bold' }}>{taxConfig.serviceTax}%</div>
-                      <div style={{ fontSize: '13px', color: '#667788' }}>Service Tax</div>
-                    </div>
-                    <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', color: '#ff4444', fontWeight: 'bold' }}>{taxConfig.incomeTax}%</div>
-                      <div style={{ fontSize: '13px', color: '#667788' }}>Income Tax</div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                      <button 
+                        onClick={() => saveTaxConfig(taxConfig)} 
+                        style={{ flex: 1, padding: '10px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#1a1a00', color: '#ffdd44', border: '2px solid #ffdd44', cursor: 'pointer' }}
+                      >
+                        💾 Save Custom Rates
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setTaxConfig(c => ({ ...c, vat: 0, tds: 0, serviceTax: 0, incomeTax: 0 }));
+                        }} 
+                        style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '15px', fontWeight: 'bold', background: '#1a0606', color: '#ff6666', border: '2px solid #441111', cursor: 'pointer' }}
+                      >
+                        Reset
+                      </button>
                     </div>
                   </div>
-                </div>
-                
-                <button onClick={() => saveTaxConfig(taxConfig)} style={{ marginTop: 12, width: '100%', padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
-                  💾 Save Tax Settings
-                </button>
+                ) : (
+                  /* Predefined Country Selection */
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>Country</div>
+                        <select 
+                          value={taxConfig.country} 
+                          onChange={e => {
+                            const country = e.target.value;
+                            const states = Object.keys(TAX_SYSTEMS[country]?.states || {});
+                            const firstState = states[0] || '';
+                            const stateData = TAX_SYSTEMS[country]?.states[firstState];
+                            setTaxConfig(c => ({
+                              ...c,
+                              country,
+                              state: firstState,
+                              vat: stateData?.vat || 0,
+                              tds: stateData?.tds || 0,
+                              serviceTax: stateData?.serviceTax || 0,
+                              incomeTax: stateData?.incomeTax || 0,
+                            }));
+                          }} 
+                          style={{ ...inp, cursor: 'pointer' }}
+                        >
+                          {Object.entries(TAX_SYSTEMS).map(([key, val]) => (
+                            <option key={key} value={key}>{val.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', color: '#8899aa', marginBottom: 6 }}>
+                          {taxConfig.country === 'usa' ? 'State' : taxConfig.country === 'uk' ? 'Region' : taxConfig.country === 'canada' ? 'Province' : taxConfig.country === 'australia' ? 'State' : 'State'}
+                        </div>
+                        <select 
+                          value={taxConfig.state} 
+                          onChange={e => {
+                            const state = e.target.value;
+                            const stateData = TAX_SYSTEMS[taxConfig.country]?.states[state];
+                            if (stateData) {
+                              setTaxConfig(c => ({
+                                ...c,
+                                state,
+                                vat: stateData.vat,
+                                tds: stateData.tds,
+                                serviceTax: stateData.serviceTax,
+                                incomeTax: stateData.incomeTax,
+                              }));
+                            }
+                          }} 
+                          style={{ ...inp, cursor: 'pointer' }}
+                        >
+                          {Object.entries(TAX_SYSTEMS[taxConfig.country]?.states || {}).map(([key, val]) => (
+                            <option key={key} value={key}>{val.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {/* Current Tax Rates */}
+                    <div style={{ background: '#0d0d1e', border: '1px solid #223355', padding: '14px' }}>
+                      <div style={{ fontSize: '16px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 10 }}>📊 Current Tax Rates for {TAX_SYSTEMS[taxConfig.country]?.states[taxConfig.state]?.name || taxConfig.state}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                        <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', color: '#00ff88', fontWeight: 'bold' }}>{taxConfig.vat}%</div>
+                          <div style={{ fontSize: '13px', color: '#667788' }}>VAT/GST</div>
+                        </div>
+                        <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', color: '#ff8844', fontWeight: 'bold' }}>{taxConfig.tds}%</div>
+                          <div style={{ fontSize: '13px', color: '#667788' }}>TDS</div>
+                        </div>
+                        <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', color: '#66ddff', fontWeight: 'bold' }}>{taxConfig.serviceTax}%</div>
+                          <div style={{ fontSize: '13px', color: '#667788' }}>Service Tax</div>
+                        </div>
+                        <div style={{ background: '#0a0a18', padding: '10px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', color: '#ff4444', fontWeight: 'bold' }}>{taxConfig.incomeTax}%</div>
+                          <div style={{ fontSize: '13px', color: '#667788' }}>Income Tax</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button onClick={() => saveTaxConfig(taxConfig)} style={{ marginTop: 12, width: '100%', padding: '10px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88', cursor: 'pointer' }}>
+                      💾 Save Tax Settings
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Tax Calculations */}
@@ -683,7 +808,29 @@ export function FinancePanel({ onClose }: Props) {
 
               {/* Tax Calendar - Country Specific */}
               <div style={{ background: '#0d0d1a', border: '2px solid #334466', padding: '20px' }}>
-                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>📅 Tax Calendar ({TAX_SYSTEMS[taxConfig.country]?.name})</div>
+                <div style={{ fontSize: '22px', color: '#66ddff', fontWeight: 'bold', marginBottom: 16 }}>
+                  📅 Tax Calendar {taxConfig.country !== 'custom' ? `(${TAX_SYSTEMS[taxConfig.country]?.name})` : '(Custom)'}
+                </div>
+                
+                {taxConfig.country === 'custom' && (
+                  <div style={{ background: '#0d0d1e', border: '1px solid #ffdd44', padding: '20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '18px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 10 }}>✏️ Custom Tax Mode</div>
+                    <div style={{ fontSize: '15px', color: '#667788', marginBottom: 16 }}>
+                      You're using custom tax rates. Tax calendar reminders are based on general business tax cycles.
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                      <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
+                        <div style={{ fontSize: '16px', color: '#ff8844', fontWeight: 'bold' }}>📤 Quarterly Taxes</div>
+                        <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Set reminders for your tax dates</div>
+                      </div>
+                      <div style={{ background: '#0a0a18', border: '1px solid #66ddff', padding: '14px' }}>
+                        <div style={{ fontSize: '16px', color: '#66ddff', fontWeight: 'bold' }}>📊 Annual Return</div>
+                        <div style={{ fontSize: '14px', color: '#667788', marginTop: 4 }}>Set annual filing reminder</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {taxConfig.country === 'india' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                     <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
@@ -708,6 +855,7 @@ export function FinancePanel({ onClose }: Props) {
                     </div>
                   </div>
                 )}
+
                 {taxConfig.country === 'usa' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                     <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
@@ -728,6 +876,7 @@ export function FinancePanel({ onClose }: Props) {
                     </div>
                   </div>
                 )}
+
                 {(taxConfig.country === 'uk' || taxConfig.country === 'germany' || taxConfig.country === 'singapore') && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                     <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
@@ -748,6 +897,7 @@ export function FinancePanel({ onClose }: Props) {
                     </div>
                   </div>
                 )}
+
                 {taxConfig.country === 'uae' && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                     <div style={{ background: '#0a0a18', border: '1px solid #00ff88', padding: '14px', textAlign: 'center' }}>
@@ -760,6 +910,7 @@ export function FinancePanel({ onClose }: Props) {
                     </div>
                   </div>
                 )}
+
                 {(taxConfig.country === 'canada' || taxConfig.country === 'australia') && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                     <div style={{ background: '#0a0a18', border: '1px solid #ff8844', padding: '14px' }}>
