@@ -16,6 +16,7 @@ import { AIAutoPriority } from './components/AIAutoPriority.js';
 import { GameMechanics } from './components/GameMechanics.js';
 import { EmailSettings } from './components/EmailSettings.js';
 import { Unlockables } from './components/Unlockables.js';
+import { Leaderboard } from './components/Leaderboard.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -535,6 +536,7 @@ function App() {
   const [gameOpen, setGameOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1112,6 +1114,11 @@ function App() {
         <Unlockables onClose={() => setUnlockOpen(false)} />
       )}
 
+      {/* Leaderboard */}
+      {leaderboardOpen && (
+        <Leaderboard onClose={() => setLeaderboardOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1169,6 +1176,7 @@ function App() {
         onGameClick={() => setGameOpen(v => !v)}
         onEmailClick={() => setEmailOpen(v => !v)}
         onUnlockClick={() => setUnlockOpen(v => !v)}
+        onLeaderboardClick={() => setLeaderboardOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 

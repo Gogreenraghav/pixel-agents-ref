@@ -23,6 +23,7 @@ interface BottomToolbarProps {
   onGameClick?: () => void;
   onEmailClick?: () => void;
   onUnlockClick?: () => void;
+  onLeaderboardClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -377,6 +378,7 @@ export function BottomToolbar({
   onGameClick,
   onEmailClick,
   onUnlockClick,
+  onLeaderboardClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -752,6 +754,21 @@ export function BottomToolbar({
           title="Unlockables Shop"
         >
           🎁 Shop
+        </button>
+
+        {/* LEADERBOARD button */}
+        <button
+          onClick={onLeaderboardClick}
+          onMouseEnter={() => setHovered('leaderboard')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'leaderboard' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Global Leaderboard"
+        >
+          🏆 Rank
         </button>
 
         <div style={{ position: 'relative' }}>
