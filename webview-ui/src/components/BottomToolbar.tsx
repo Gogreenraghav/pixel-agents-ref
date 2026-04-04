@@ -21,6 +21,7 @@ interface BottomToolbarProps {
   onSuggestionsClick?: () => void;
   onPriorityClick?: () => void;
   onGameClick?: () => void;
+  onEmailClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -373,6 +374,7 @@ export function BottomToolbar({
   onSuggestionsClick,
   onPriorityClick,
   onGameClick,
+  onEmailClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -718,6 +720,21 @@ export function BottomToolbar({
           title="Game Mechanics"
         >
           🎮 Game
+        </button>
+
+        {/* EMAIL button */}
+        <button
+          onClick={onEmailClick}
+          onMouseEnter={() => setHovered('email')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'email' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Email Integration"
+        >
+          📧 Email
         </button>
 
         <div style={{ position: 'relative' }}>
