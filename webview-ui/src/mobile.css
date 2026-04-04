@@ -141,3 +141,105 @@
     display: none !important;
   }
 }
+
+/*** FIXED: Mobile Scroll & Floor Manager ***/
+
+/*** Scrollable modals on mobile ***/
+@media (max-width: 768px) {
+  /* Modal scrolls */
+  [style*="maxHeight: '90vh'"],
+  [style*="maxHeight:90vh"],
+  [style*="max-height: 90vh"] {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 90vh !important;
+    height: auto !important;
+  }
+  
+  /* Auto scroll to top on modal open */
+  .modal-content,
+  [style*="position: fixed"][style*="zIndex: 7"],
+  [style*="position:fixed"][style*="zIndex:7"] {
+    scroll-behavior: smooth;
+  }
+  
+  /* Floor/tab types horizontal scroll */
+  [style*="display: flex"][style*="gap"],
+  .tabs-container,
+  [style*="flexWrap: 'wrap'"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scroll-snap-type: x mandatory;
+  }
+  
+  [style*="display: flex"][style*="gap"] > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+  
+  /* Scrollable content areas */
+  [style*="overflowY: 'auto'"],
+  [style*="overflow-y: auto"] {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Floor Manager scrollable */
+  [style*="FloorManager"],
+  [data-floor-modal] {
+    overflow-y: auto !important;
+    max-height: 90vh !important;
+  }
+  
+  /* Office view scrollable */
+  .office-view,
+  [style*="overflow: hidden"][style*="width: 100%"] {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Tab types row scrollable */
+  .tab-types,
+  [style*="flexDirection: 'row'"],
+  [style*="flex-direction: row"] {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Bottom padding for scroll */
+  body {
+    padding-bottom: 150px !important;
+  }
+}
+
+/*** Extra small screens ***/
+@media (max-width: 480px) {
+  /* Ensure horizontal scroll works */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Smooth scroll to top */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/*** Scroll to top on load ***/
+@media (max-width: 768px) {
+  html, body {
+    scroll-behavior: smooth;
+  }
+  
+  /* When modal opens, scroll to top */
+  @keyframes scrollToTop {
+    from { scroll-top: 9999px; }
+    to { scroll-top: 0; }
+  }
+  
+  .scroll-top-on-load {
+    animation: scrollToTop 0.3s ease-out;
+  }
+}
