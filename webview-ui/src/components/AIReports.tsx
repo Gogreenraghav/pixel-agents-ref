@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
   onClose: () => void;
@@ -11,10 +11,19 @@ function getCEOConfig() {
   return ceo?.aiConfig ?? null;
 }
 
+function saveCEOConfig(config: any) {
+  const agents = JSON.parse(localStorage.getItem('pixeloffice_agents') ?? '[]');
+  const idx = agents.findIndex((a: any) => a.name?.toLowerCase().includes('ceo') || a.role?.toLowerCase().includes('ceo'));
+  if (idx >= 0) {
+    agents[idx].aiConfig = config;
+    localStorage.setItem('pixeloffice_agents', JSON.stringify(agents));
+  }
+}
+
 async function callAIReport(systemPrompt: string, userPrompt: string): Promise<string> {
   const cfg = getCEOConfig();
   if (!cfg?.baseUrl || !cfg?.apiKey) {
-    throw new Error('AI not configured. Please set up AI Brain in Settings.');
+    throw new Error('AI_NOT_CONFIGURED');
   }
   
   const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
@@ -41,14 +50,52 @@ export function AIReports({ onClose }: Props) {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showConfig, setShowConfig] = useState(false);
+  const [aiConfig, setAiConfig] = useState({
+    provider: 'openai',
+    baseUrl: '',
+    apiKey: '',
+    model: 'gpt-4',
+  });
+
+  useEffect(() => {
+    const cfg = getCEOConfig();
+    if (cfg) {
+      setAiConfig({
+        provider: cfg.provider || 'openai',
+        baseUrl: cfg.baseUrl || '',
+        apiKey: cfg.apiKey || '',
+        model: cfg.model || 'gpt-4',
+      });
+    }
+  }, []);
+
+  const saveConfig = () => {
+    const finalConfig = {
+      provider: aiConfig.provider,
+      baseUrl: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
+      model: aiConfig.model,
+    };
+    saveCEOConfig(finalConfig);
+    setShowConfig(false);
+    setError('');
+  };
 
   const generateReport = async () => {
+    // Check if config exists
+    const cfg = getCEOConfig();
+    if (!cfg?.baseUrl || !cfg?.apiKey) {
+      setShowConfig(true);
+      setError('AI not configured');
+      return;
+    }
+
     setLoading(true);
     setReport('');
     setError('');
 
     try {
-      // Gather data
       const balance = parseInt(localStorage.getItem('pixeloffice_balance') ?? '50000');
       const agents = JSON.parse(localStorage.getItem('pixeloffice_agents') ?? '[]');
       const tasks = JSON.parse(localStorage.getItem('pixeloffice_tasks') ?? '[]');
@@ -76,7 +123,7 @@ export function AIReports({ onClose }: Props) {
 - Total Revenue from Invoices: $${totalRevenue.toLocaleString()}
 
 **Format:**
-📊 **[Period.toUpperCase()} REPORT**
+📊 **[${period.toUpperCase()} REPORT]**
 
 💰 **Financial Summary**
 - Current Balance: $X
@@ -103,7 +150,12 @@ Keep it under 200 words. Be specific and actionable.`;
       const response = await callAIReport(systemPrompt, userPrompt);
       setReport(response);
     } catch (err: any) {
-      setError(err.message);
+      if (err.message === 'AI_NOT_CONFIGURED') {
+        setShowConfig(true);
+        setError('AI not configured');
+      } else {
+        setError(err.message);
+      }
       setReport('');
     }
 
@@ -115,6 +167,242 @@ Keep it under 200 words. Be specific and actionable.`;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // AI Config Modal
+  if (showConfig) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: 500, background: '#0d0d1e',
+          border: '2px solid #ff4444', fontFamily: 'monospace',
+        }}>
+          <div style={{ background: '#1a0505', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '2px solid #ff4444' }}>
+            <span style={{ fontSize: '24px' }}>⚙️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '18px', color: '#ff4444', fontWeight: 'bold' }}>⚠️ AI Not Configured</div>
+              <div style={{ fontSize: '14px', color: '#667788' }}>Set up your AI Brain to use this feature</div>
+            </div>
+            <button onClick={() => setShowConfig(false)} style={{ background: 'transparent', border: 'none', color: '#ff6666', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+          </div>
+
+          <div style={{ padding: 20 }}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Provider</label>
+              <select
+                value={aiConfig.provider}
+                onChange={e => setAiConfig({ ...aiConfig, provider: e.target.value })}
+                style={{
+                  width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                  border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                }}
+              >
+                <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="groq">Groq (Fast)</option>
+                <option value="ollama">Ollama (Local)</option>
+                <option value="custom">Custom URL</option>
+              </select>
+            </div>
+
+            {aiConfig.provider === 'openai' && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
+                  <input
+                    type="text"
+                    value={aiConfig.baseUrl || 'https://api.openai.com/v1'}
+                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
+                  <input
+                    type="password"
+                    value={aiConfig.apiKey}
+                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                    placeholder="sk-..."
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
+                  <select
+                    value={aiConfig.model}
+                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  >
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {aiConfig.provider === 'anthropic' && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
+                  <input
+                    type="text"
+                    value={aiConfig.baseUrl || 'https://api.anthropic.com/v1'}
+                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
+                  <input
+                    type="password"
+                    value={aiConfig.apiKey}
+                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                    placeholder="sk-ant-..."
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
+                  <select
+                    value={aiConfig.model}
+                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  >
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {aiConfig.provider === 'groq' && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
+                  <input
+                    type="text"
+                    value={aiConfig.baseUrl || 'https://api.groq.com/openai/v1'}
+                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
+                  <input
+                    type="password"
+                    value={aiConfig.apiKey}
+                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                    placeholder="gsk_..."
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
+                  <select
+                    value={aiConfig.model}
+                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  >
+                    <option value="llama-3.1-70b-versatile">Llama 3.1 70B</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                    <option value="gemma-7b-it">Gemma 7B</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {(aiConfig.provider === 'ollama' || aiConfig.provider === 'custom') && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>
+                    {aiConfig.provider === 'ollama' ? 'Ollama URL (e.g., http://localhost:11434)' : 'Custom API URL'}
+                  </label>
+                  <input
+                    type="text"
+                    value={aiConfig.baseUrl}
+                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                    placeholder={aiConfig.provider === 'ollama' ? 'http://localhost:11434' : 'https://api.example.com'}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key (if required)</label>
+                  <input
+                    type="password"
+                    value={aiConfig.apiKey}
+                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                    placeholder="Optional"
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model Name</label>
+                  <input
+                    type="text"
+                    value={aiConfig.model}
+                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
+                    placeholder={aiConfig.provider === 'ollama' ? 'llama3.2' : 'gpt-4'}
+                    style={{
+                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
+                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
+                    }}
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={saveConfig}
+              style={{
+                width: '100%', padding: '12px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
+                background: '#0a2a0a', color: '#00ff88', border: '2px solid #00ff88',
+                cursor: 'pointer',
+              }}
+            >
+              💾 Save Configuration
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -184,7 +472,16 @@ Keep it under 200 words. Be specific and actionable.`;
             <div style={{ textAlign: 'center', padding: 40, background: '#1a0606', border: '2px solid #ff4444' }}>
               <div style={{ fontSize: '32px', marginBottom: 16 }}>❌</div>
               <div style={{ color: '#ff4444', fontSize: '18px', marginBottom: 12 }}>{error}</div>
-              <div style={{ color: '#667788', fontSize: '15px' }}>Please configure AI Brain in Settings → AI Brain tab</div>
+              <button
+                onClick={() => setShowConfig(true)}
+                style={{
+                  padding: '10px 24px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
+                  background: '#0a1a0a', color: '#00ff88', border: '2px solid #00ff88',
+                  cursor: 'pointer',
+                }}
+              >
+                ⚙️ Configure AI
+              </button>
             </div>
           )}
 
