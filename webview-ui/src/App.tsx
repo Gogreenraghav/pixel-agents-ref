@@ -5,6 +5,8 @@ import { StatsDashboard, ROLE_SALARY } from './components/StatsDashboard.js';
 import { useOfficeEvents, EventBanner } from './components/OfficeEvents.js';
 import { AgentChatPanel } from './components/AgentChatPanel.js';
 import { AgentTooltip } from './components/AgentTooltip.js';
+import { KeyboardShortcuts } from './components/KeyboardShortcuts.js';
+import { QuickStatsPanel } from './components/QuickStatsPanel.js';
 import { AgentMemoryViewer } from './components/AgentMemoryViewer.js';
 import { GroupChat } from './components/GroupChat.js';
 import { WebhookSettings } from './components/WebhookSettings.js';
@@ -29,6 +31,8 @@ import type { OfficeEvent } from './components/OfficeEvents.js';
 import { DebugView } from './components/DebugView.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import { PULSE_ANIMATION_DURATION_SEC } from './constants.js';
+import { setSoundEnabled } from './notificationSound.js';
+import { setGameSpeedMultiplier } from './office/engine/gameLoop.js';
 import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
@@ -869,12 +873,24 @@ function App() {
 
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [alwaysShowOverlay, setAlwaysShowOverlay] = useState(false);
+  const [soundEnabled, setSoundEnabledState] = useState(true);
+  const [speedBoost, setSpeedBoost] = useState(1);
 
   const handleToggleDebugMode = useCallback(() => setIsDebugMode((prev) => !prev), []);
   const handleToggleAlwaysShowOverlay = useCallback(
     () => setAlwaysShowOverlay((prev) => !prev),
     [],
   );
+  const handleToggleSound = useCallback(() => {
+    const newVal = !soundEnabled;
+    setSoundEnabledState(newVal);
+    setSoundEnabled(newVal);
+  }, [soundEnabled]);
+  const handleToggleSpeedBoost = useCallback(() => {
+    const newSpeed = speedBoost === 1 ? 2 : 1;
+    setSpeedBoost(newSpeed);
+    setGameSpeedMultiplier(newSpeed);
+  }, [speedBoost]);
 
   const handleSelectAgent = useCallback((id: number) => {
     vscode.postMessage({ type: 'focusAgent', id });
@@ -1191,6 +1207,10 @@ function App() {
         onLeaderboardClick={() => setLeaderboardOpen(v => !v)}
         onFloorClick={() => setFloorOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
+        soundEnabled={soundEnabled}
+        onToggleSound={handleToggleSound}
+        speedBoost={speedBoost}
+        onToggleSpeedBoost={handleToggleSpeedBoost}
       /> }
 
       {editor.isEditMode && editor.isDirty && (
@@ -1272,6 +1292,20 @@ function App() {
           panRef={editor.panRef}
         />
       )}
+
+      {/* Keyboard Shortcuts */}
+      <KeyboardShortcuts
+        onDashboard={() => setStatsOpen(v => !v)}
+        onSettings={() => {}}
+        onGame={() => setGameOpen(v => !v)}
+      />
+
+      {/* Quick Stats Panel */}
+      <QuickStatsPanel
+        agentCount={hiredAgents.length}
+        balance={companyBalance}
+        floor={currentFloor}
+      />
 
       {isDebugMode && (
         <DebugView

@@ -32,6 +32,10 @@ interface BottomToolbarProps {
   onToggleDebugMode: () => void;
   alwaysShowOverlay: boolean;
   onToggleAlwaysShowOverlay: () => void;
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
+  speedBoost?: number;
+  onToggleSpeedBoost?: () => void;
   workspaceFolders: WorkspaceFolder[];
   externalAssetDirectories: string[];
 }
@@ -361,6 +365,10 @@ export function BottomToolbar({
   onToggleDebugMode,
   alwaysShowOverlay,
   onToggleAlwaysShowOverlay,
+  soundEnabled = true,
+  onToggleSound,
+  speedBoost = 1,
+  onToggleSpeedBoost,
   externalAssetDirectories,
   onHireAgent,
   currentFloor = 0,
@@ -841,6 +849,40 @@ export function BottomToolbar({
             Layout
           </button>
         </div>
+
+        {/* Speed Boost */}
+        <button
+          onClick={onToggleSpeedBoost}
+          onMouseEnter={() => setHovered('speed')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            padding: '5px 8px',
+            fontSize: '20px',
+            color: speedBoost > 1 ? '#ffdd44' : '#888',
+            background: hovered === 'speed' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title={speedBoost > 1 ? `Speed: ${speedBoost}x (click to normal)` : 'Speed Boost: 2x'}
+        >
+          ⚡{speedBoost > 1 ? `${speedBoost}x` : ''}
+        </button>
+
+        {/* Sound Toggle */}
+        <button
+          onClick={onToggleSound}
+          onMouseEnter={() => setHovered('sound')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            padding: '5px 8px',
+            fontSize: '20px',
+            color: soundEnabled ? '#00ff88' : '#ff6666',
+            background: hovered === 'sound' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title={soundEnabled ? 'Sound On' : 'Sound Off'}
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
 
         <div style={{ position: 'relative' }}>
           <button
