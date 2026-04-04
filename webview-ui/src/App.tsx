@@ -18,6 +18,9 @@ import { EmailSettings } from './components/EmailSettings.js';
 import { Unlockables } from './components/Unlockables.js';
 import { Leaderboard } from './components/Leaderboard.js';
 import { FloorManager } from './components/FloorManager.js';
+
+// @ts-ignore - prevent tree-shaking
+window.__FLOOR_MANAGER__ = FloorManager;
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
