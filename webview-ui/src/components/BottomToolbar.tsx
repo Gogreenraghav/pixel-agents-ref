@@ -18,6 +18,7 @@ interface BottomToolbarProps {
   onFinanceClick?: () => void;
   onMessagingClick?: () => void;
   onReportsClick?: () => void;
+  onSuggestionsClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -367,6 +368,7 @@ export function BottomToolbar({
   onFinanceClick,
   onMessagingClick,
   onReportsClick,
+  onSuggestionsClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -667,6 +669,21 @@ export function BottomToolbar({
           title="AI Reports"
         >
           🤖 Reports
+        </button>
+
+        {/* AI SUGGESTIONS button */}
+        <button
+          onClick={onSuggestionsClick}
+          onMouseEnter={() => setHovered('suggestions')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'suggestions' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="AI Task Suggestions"
+        >
+          💡 Ideas
         </button>
 
         <div style={{ position: 'relative' }}>

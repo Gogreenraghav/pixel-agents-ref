@@ -11,6 +11,7 @@ import { APISettings } from './components/APISettings.js';
 import { FinancePanel } from './components/FinancePanel.js';
 import { MessagingSettings } from './components/MessagingSettings.js';
 import { AIReports } from './components/AIReports.js';
+import { AITaskSuggestions } from './components/AITaskSuggestions.js';
 import { CompanyDashboard } from './components/CompanyDashboard.js';
 import { SchedulePanel, getCurrentSlot, slotToAgentState } from './components/SchedulePanel.js';
 import type { DaySchedule } from './components/SchedulePanel.js';
@@ -525,6 +526,7 @@ function App() {
   const [financeOpen, setFinanceOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [memoryAgentId, setMemoryAgentId] = useState<string | null>(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [hireHistory, setHireHistory] = useState<HireHistoryEntry[]>(() => loadHistoryFromStorage());
@@ -1077,6 +1079,11 @@ function App() {
         <AIReports onClose={() => setReportsOpen(false)} />
       )}
 
+      {/* AI Task Suggestions */}
+      {suggestionsOpen && (
+        <AITaskSuggestions onClose={() => setSuggestionsOpen(false)} />
+      )}
+
       {!isEmbedMode && statsOpen && <StatsDashboard agents={hiredAgents} currentFloor={currentFloor} onClose={() => setStatsOpen(false)} onPromote={handlePromoteAgent} onFire={handleFireAgent} activeEvent={activeEvent} eventLog={eventLog} onTriggerEvent={triggerEvent} eventTemplates={EVENT_TEMPLATES} autoEvents={autoEvents} companyBalance={companyBalance} companyRevenue={monthlyRevenue} deptBudgets={deptBudgets} onDeptBudgetChange={handleDeptBudgetChange} hireHistory={hireHistory} onAutoEventsChange={setAutoEvents} />}
 
       {/* Office Event Banner */}
@@ -1129,6 +1136,7 @@ function App() {
         onFinanceClick={() => setFinanceOpen(v => !v)}
         onMessagingClick={() => setMessagingOpen(v => !v)}
         onReportsClick={() => setReportsOpen(v => !v)}
+        onSuggestionsClick={() => setSuggestionsOpen(v => !v)}
         onDashboardClick={() => setDashboardOpen(v => !v)}
       /> }
 
