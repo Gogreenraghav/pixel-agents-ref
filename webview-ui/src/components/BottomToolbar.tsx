@@ -20,6 +20,7 @@ interface BottomToolbarProps {
   onReportsClick?: () => void;
   onSuggestionsClick?: () => void;
   onPriorityClick?: () => void;
+  onGameClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -371,6 +372,7 @@ export function BottomToolbar({
   onReportsClick,
   onSuggestionsClick,
   onPriorityClick,
+  onGameClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -701,6 +703,21 @@ export function BottomToolbar({
           title="AI Auto-Prioritization"
         >
           🎯 Priority
+        </button>
+
+        {/* GAME button */}
+        <button
+          onClick={onGameClick}
+          onMouseEnter={() => setHovered('game')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'game' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="Game Mechanics"
+        >
+          🎮 Game
         </button>
 
         <div style={{ position: 'relative' }}>
