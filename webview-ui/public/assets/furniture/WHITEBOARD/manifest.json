@@ -2,12 +2,19 @@
   "id": "WHITEBOARD",
   "name": "Whiteboard",
   "category": "wall",
-  "type": "asset",
+  "type": "single",
   "canPlaceOnWalls": true,
   "canPlaceOnSurfaces": false,
-  "backgroundTiles": 0,
-  "width": 32,
-  "height": 32,
-  "footprintW": 2,
-  "footprintH": 2
+  "members": [
+    {
+      "type": "asset",
+      "id": "WHITEBOARD_FRONT",
+      "file": "WHITEBOARD.png",
+      "width": 32,
+      "height": 32,
+      "footprintW": 2,
+      "footprintH": 2,
+      "orientation": "front"
+    }
+  ]
 }
