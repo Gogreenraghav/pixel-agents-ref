@@ -26,22 +26,56 @@ async function callAIReport(systemPrompt: string, userPrompt: string): Promise<s
     throw new Error('AI_NOT_CONFIGURED');
   }
   
-  const res = await fetch((cfg.baseUrl ?? '').replace(/\/$/, '') + '/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
-    body: JSON.stringify({ 
-      model: cfg.model, 
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ], 
-      max_tokens: 800 
-    }),
-  });
+  let url = (cfg.baseUrl ?? '').replace(/\/$/, '');
   
-  if (!res.ok) throw new Error(`AI API error: ${res.status}`);
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? 'No response from AI';
+  // Handle different provider API formats
+  if (cfg.provider === 'gemini') {
+    // Gemini uses different endpoint
+    const modelName = cfg.model || 'gemini-pro';
+    const apiUrl = `${url}/v1beta/models/${modelName}:generateContent?key=${cfg.apiKey}`;
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: { maxOutputTokens: 800 }
+      }),
+    });
+    if (!res.ok) throw new Error(`AI API error: ${res.status}`);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response from AI';
+  } else if (cfg.provider === 'ollama') {
+    // Ollama uses different format
+    const res = await fetch(`${url}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model || 'llama3.2',
+        prompt: `${systemPrompt}\n\n${userPrompt}`,
+        stream: false
+      }),
+    });
+    if (!res.ok) throw new Error(`AI API error: ${res.status}`);
+    const data = await res.json();
+    return data.response ?? 'No response from AI';
+  } else {
+    // OpenAI-compatible format
+    const res = await fetch(`${url}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.apiKey ?? ''}` },
+      body: JSON.stringify({ 
+        model: cfg.model, 
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ], 
+        max_tokens: 800 
+      }),
+    });
+    if (!res.ok) throw new Error(`AI API error: ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? 'No response from AI';
+  }
 }
 
 export function AIReports({ onClose }: Props) {
@@ -52,25 +86,47 @@ export function AIReports({ onClose }: Props) {
   const [error, setError] = useState<string>('');
   const [showConfig, setShowConfig] = useState(false);
   const [aiConfig, setAiConfig] = useState({
-    provider: 'openai',
-    baseUrl: '',
+    provider: 'gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com',
     apiKey: '',
-    model: 'gpt-4',
+    model: 'gemini-2.0-flash',
   });
+
+  const PROVIDERS = [
+    { id: 'gemini', name: 'Google Gemini (Free tier available!)', icon: '✨' },
+    { id: 'openai', name: 'OpenAI (GPT-4, GPT-3.5)', icon: '🤖' },
+    { id: 'anthropic', name: 'Anthropic (Claude)', icon: '🧠' },
+    { id: 'groq', name: 'Groq (Fast, Free tier)', icon: '⚡' },
+    { id: 'ollama', name: 'Ollama (Local Models)', icon: '🖥️' },
+    { id: 'custom', name: 'Custom API URL', icon: '🔧' },
+  ];
+
+  const POPULAR_MODELS: Record<string, string[]> = {
+    gemini: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
+    openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+    anthropic: ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
+    groq: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma-7b-it'],
+    ollama: ['llama3.2', 'llama3', 'mistral', 'codellama', 'phi3'],
+    custom: [],
+  };
 
   useEffect(() => {
     const cfg = getCEOConfig();
     if (cfg) {
       setAiConfig({
-        provider: cfg.provider || 'openai',
-        baseUrl: cfg.baseUrl || '',
+        provider: cfg.provider || 'gemini',
+        baseUrl: cfg.baseUrl || 'https://generativelanguage.googleapis.com',
         apiKey: cfg.apiKey || '',
-        model: cfg.model || 'gpt-4',
+        model: cfg.model || 'gemini-2.0-flash',
       });
     }
   }, []);
 
   const saveConfig = () => {
+    if (!aiConfig.apiKey) {
+      alert('Please enter an API Key');
+      return;
+    }
     const finalConfig = {
       provider: aiConfig.provider,
       baseUrl: aiConfig.baseUrl,
@@ -83,7 +139,6 @@ export function AIReports({ onClose }: Props) {
   };
 
   const generateReport = async () => {
-    // Check if config exists
     const cfg = getCEOConfig();
     if (!cfg?.baseUrl || !cfg?.apiKey) {
       setShowConfig(true);
@@ -170,16 +225,18 @@ Keep it under 200 words. Be specific and actionable.`;
 
   // AI Config Modal
   if (showConfig) {
+    const models = POPULAR_MODELS[aiConfig.provider as keyof typeof POPULAR_MODELS] || [];
+    
     return (
       <div style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 800,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 500, background: '#0d0d1e',
-          border: '2px solid #ff4444', fontFamily: 'monospace',
+          width: 550, maxHeight: '90vh', background: '#0d0d1e',
+          border: '2px solid #ff4444', fontFamily: 'monospace', overflow: 'auto',
         }}>
-          <div style={{ background: '#1a0505', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '2px solid #ff4444' }}>
+          <div style={{ background: '#1a0505', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '2px solid #ff4444', position: 'sticky', top: 0 }}>
             <span style={{ fontSize: '24px' }}>⚙️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '18px', color: '#ff4444', fontWeight: 'bold' }}>⚠️ AI Not Configured</div>
@@ -189,209 +246,107 @@ Keep it under 200 words. Be specific and actionable.`;
           </div>
 
           <div style={{ padding: 20 }}>
+            {/* Provider Selection */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Provider</label>
-              <select
-                value={aiConfig.provider}
-                onChange={e => setAiConfig({ ...aiConfig, provider: e.target.value })}
-                style={{
-                  width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                  border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                }}
-              >
-                <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
-                <option value="anthropic">Anthropic (Claude)</option>
-                <option value="groq">Groq (Fast)</option>
-                <option value="ollama">Ollama (Local)</option>
-                <option value="custom">Custom URL</option>
-              </select>
+              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>AI Provider</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {PROVIDERS.map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      let defaultUrl = '';
+                      let defaultModel = '';
+                      switch(p.id) {
+                        case 'gemini': defaultUrl = 'https://generativelanguage.googleapis.com'; defaultModel = 'gemini-2.0-flash'; break;
+                        case 'openai': defaultUrl = 'https://api.openai.com/v1'; defaultModel = 'gpt-4o'; break;
+                        case 'anthropic': defaultUrl = 'https://api.anthropic.com/v1'; defaultModel = 'claude-sonnet-4-20250514'; break;
+                        case 'groq': defaultUrl = 'https://api.groq.com/openai/v1'; defaultModel = 'llama-3.1-70b-versatile'; break;
+                        case 'ollama': defaultUrl = 'http://localhost:11434'; defaultModel = 'llama3.2'; break;
+                        default: defaultModel = 'gpt-4';
+                      }
+                      setAiConfig({ ...aiConfig, provider: p.id, baseUrl: defaultUrl, model: defaultModel });
+                    }}
+                    style={{
+                      padding: '10px', cursor: 'pointer',
+                      background: aiConfig.provider === p.id ? '#1a2a3a' : '#0a0a18',
+                      border: `2px solid ${aiConfig.provider === p.id ? '#66ddff' : '#334466'}`,
+                      color: aiConfig.provider === p.id ? '#66ddff' : '#667788',
+                      fontSize: '13px', fontWeight: 'bold',
+                    }}
+                  >
+                    {p.icon} {p.name}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {aiConfig.provider === 'openai' && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
-                  <input
-                    type="text"
-                    value={aiConfig.baseUrl || 'https://api.openai.com/v1'}
-                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
-                  <input
-                    type="password"
-                    value={aiConfig.apiKey}
-                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
-                    placeholder="sk-..."
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
-                  <select
-                    value={aiConfig.model}
-                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  >
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                  </select>
-                </div>
-              </>
-            )}
+            {/* API URL */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>
+                API URL {aiConfig.provider === 'ollama' && '(Local Server)'}
+              </label>
+              <input
+                type="text"
+                value={aiConfig.baseUrl}
+                onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                style={{ width: '100%', padding: '10px', background: '#0a0a18', color: '#fff', border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px' }}
+              />
+            </div>
 
-            {aiConfig.provider === 'anthropic' && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
-                  <input
-                    type="text"
-                    value={aiConfig.baseUrl || 'https://api.anthropic.com/v1'}
-                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
-                  <input
-                    type="password"
-                    value={aiConfig.apiKey}
-                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
-                    placeholder="sk-ant-..."
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
-                  <select
-                    value={aiConfig.model}
-                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  >
-                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                  </select>
-                </div>
-              </>
-            )}
+            {/* API Key */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>
+                API Key 
+                {aiConfig.provider === 'gemini' && <span style={{ color: '#00ff88', fontSize: '12px' }}> (Get free key: aistudio.google.com)</span>}
+              </label>
+              <input
+                type="password"
+                value={aiConfig.apiKey}
+                onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
+                placeholder={aiConfig.provider === 'gemini' ? 'AIza...' : aiConfig.provider === 'ollama' ? 'Not needed for local' : 'sk-...'}
+                style={{ width: '100%', padding: '10px', background: '#0a0a18', color: '#fff', border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px' }}
+              />
+            </div>
 
-            {aiConfig.provider === 'groq' && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API URL</label>
-                  <input
-                    type="text"
-                    value={aiConfig.baseUrl || 'https://api.groq.com/openai/v1'}
-                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key</label>
-                  <input
-                    type="password"
-                    value={aiConfig.apiKey}
-                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
-                    placeholder="gsk_..."
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
-                  <select
-                    value={aiConfig.model}
-                    onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  >
-                    <option value="llama-3.1-70b-versatile">Llama 3.1 70B</option>
-                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                    <option value="gemma-7b-it">Gemma 7B</option>
-                  </select>
-                </div>
-              </>
-            )}
-
-            {(aiConfig.provider === 'ollama' || aiConfig.provider === 'custom') && (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>
-                    {aiConfig.provider === 'ollama' ? 'Ollama URL (e.g., http://localhost:11434)' : 'Custom API URL'}
-                  </label>
-                  <input
-                    type="text"
-                    value={aiConfig.baseUrl}
-                    onChange={e => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
-                    placeholder={aiConfig.provider === 'ollama' ? 'http://localhost:11434' : 'https://api.example.com'}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>API Key (if required)</label>
-                  <input
-                    type="password"
-                    value={aiConfig.apiKey}
-                    onChange={e => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
-                    placeholder="Optional"
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model Name</label>
+            {/* Model Selection - Dropdown + Custom Input */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', color: '#8899aa', fontSize: '14px', marginBottom: 6 }}>Model</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select
+                  value={models.includes(aiConfig.model) ? aiConfig.model : ''}
+                  onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
+                  style={{ flex: 1, padding: '10px', background: '#0a0a18', color: '#fff', border: '1px solid #334466', fontFamily: 'monospace', fontSize: '14px' }}
+                >
+                  <option value="">-- Popular Models --</option>
+                  {models.map(m => <option key={m} value={m}>{m}</option>)}
+                  <option value="__custom__">Custom Model...</option>
+                </select>
+                {(!models.includes(aiConfig.model) || aiConfig.model === '') && (
                   <input
                     type="text"
                     value={aiConfig.model}
                     onChange={e => setAiConfig({ ...aiConfig, model: e.target.value })}
-                    placeholder={aiConfig.provider === 'ollama' ? 'llama3.2' : 'gpt-4'}
-                    style={{
-                      width: '100%', padding: '10px', background: '#0a0a18', color: '#fff',
-                      border: '1px solid #334466', fontFamily: 'monospace', fontSize: '15px',
-                    }}
+                    placeholder="Type model name..."
+                    style={{ flex: 1, padding: '10px', background: '#0a0a18', color: '#fff', border: '1px solid #334466', fontFamily: 'monospace', fontSize: '14px' }}
                   />
+                )}
+              </div>
+              {aiConfig.provider === 'gemini' && (
+                <div style={{ marginTop: 8, fontSize: '12px', color: '#445566' }}>
+                  💡 <strong style={{ color: '#ffdd44' }}>Recommended:</strong> gemini-2.0-flash (fast, free) or gemini-1.5-pro (powerful)
                 </div>
-              </>
-            )}
+              )}
+              {aiConfig.provider === 'groq' && (
+                <div style={{ marginTop: 8, fontSize: '12px', color: '#445566' }}>
+                  💡 <strong style={{ color: '#ffdd44' }}>Recommended:</strong> llama-3.1-70b-versatile (fastest)
+                </div>
+              )}
+            </div>
 
             <button
               onClick={saveConfig}
               style={{
-                width: '100%', padding: '12px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
+                width: '100%', padding: '14px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
                 background: '#0a2a0a', color: '#00ff88', border: '2px solid #00ff88',
                 cursor: 'pointer',
               }}
@@ -523,7 +478,7 @@ Keep it under 200 words. Be specific and actionable.`;
         {/* Footer */}
         <div style={{ padding: '12px 20px', borderTop: '2px solid #223355', background: '#0a0a18' }}>
           <div style={{ fontSize: '14px', color: '#445566' }}>
-            💡 Reports are generated by AI based on your company data. Make sure AI Brain is configured.
+            💡 Reports are generated by AI based on your company data. Supports Gemini, OpenAI, Claude, Groq, Ollama, and custom APIs.
           </div>
         </div>
       </div>
