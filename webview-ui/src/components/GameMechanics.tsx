@@ -234,8 +234,8 @@ export function GameMechanics({ onClose }: { onClose: () => void }) {
                 <div style={{ fontSize: '20px', color: '#66ddff', fontWeight: 'bold', marginBottom: 12 }}>🎁 Unlock at Level {gameState.level}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {currentLevel.perks.map((perk, idx) => (
-                    <div key={idx} style={{ background: '#0d0d1e', border: '1px solid #334466', padding: '8px 14px', fontSize: '15px', color: '#00ff88' }}>
-                      ✓ {perk}
+                    <div key={idx} style={{ background: '#0d0d1e', border: '2px solid #00ff88', padding: '10px 16px', fontSize: '16px', color: '#00ff88', fontWeight: 'bold' }}>
+                      ✨ {perk}
                     </div>
                   ))}
                 </div>
@@ -243,27 +243,27 @@ export function GameMechanics({ onClose }: { onClose: () => void }) {
 
               {/* XP Calculator */}
               <div style={{ background: '#0a0a18', border: '2px solid #334466', padding: '16px' }}>
-                <div style={{ fontSize: '18px', color: '#66ddff', fontWeight: 'bold', marginBottom: 12 }}>📈 XP Sources</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div style={{ background: '#0d0d1e', padding: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>✅</div>
-                    <div style={{ color: '#8899aa', fontSize: '14px' }}>Task Complete</div>
-                    <div style={{ color: '#ffdd44', fontSize: '18px', fontWeight: 'bold' }}>+50 XP</div>
+                <div style={{ fontSize: '20px', color: '#ffdd44', fontWeight: 'bold', marginBottom: 12 }}>⚡ XP Sources (How to Earn)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                  <div style={{ background: '#0d0d1e', padding: '12px', textAlign: 'center', border: '2px solid #223355' }}>
+                    <div style={{ fontSize: '28px' }}>✅</div>
+                    <div style={{ color: '#aabbcc', fontSize: '15px', fontWeight: 'bold' }}>Task Complete</div>
+                    <div style={{ color: '#ffdd44', fontSize: '20px', fontWeight: 'bold' }}>+50 XP</div>
                   </div>
-                  <div style={{ background: '#0d0d1e', padding: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>👤</div>
-                    <div style={{ color: '#8899aa', fontSize: '14px' }}>Hire Agent</div>
-                    <div style={{ color: '#ffdd44', fontSize: '18px', fontWeight: 'bold' }}>+100 XP</div>
+                  <div style={{ background: '#0d0d1e', padding: '12px', textAlign: 'center', border: '2px solid #223355' }}>
+                    <div style={{ fontSize: '28px' }}>👤</div>
+                    <div style={{ color: '#aabbcc', fontSize: '15px', fontWeight: 'bold' }}>Hire Agent</div>
+                    <div style={{ color: '#ffdd44', fontSize: '20px', fontWeight: 'bold' }}>+100 XP</div>
                   </div>
-                  <div style={{ background: '#0d0d1e', padding: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>🤝</div>
-                    <div style={{ color: '#8899aa', fontSize: '14px' }}>New Client</div>
-                    <div style={{ color: '#ffdd44', fontSize: '18px', fontWeight: 'bold' }}>+150 XP</div>
+                  <div style={{ background: '#0d0d1e', padding: '12px', textAlign: 'center', border: '2px solid #223355' }}>
+                    <div style={{ fontSize: '28px' }}>🤝</div>
+                    <div style={{ color: '#aabbcc', fontSize: '15px', fontWeight: 'bold' }}>New Client</div>
+                    <div style={{ color: '#ffdd44', fontSize: '20px', fontWeight: 'bold' }}>+150 XP</div>
                   </div>
-                  <div style={{ background: '#0d0d1e', padding: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>💰</div>
-                    <div style={{ color: '#8899aa', fontSize: '14px' }}>$1K Revenue</div>
-                    <div style={{ color: '#ffdd44', fontSize: '18px', fontWeight: 'bold' }}>+200 XP</div>
+                  <div style={{ background: '#0d0d1e', padding: '12px', textAlign: 'center', border: '2px solid #223355' }}>
+                    <div style={{ fontSize: '28px' }}>💰</div>
+                    <div style={{ color: '#aabbcc', fontSize: '15px', fontWeight: 'bold' }}>$1K Revenue</div>
+                    <div style={{ color: '#ffdd44', fontSize: '20px', fontWeight: 'bold' }}>+200 XP</div>
                   </div>
                 </div>
               </div>
@@ -291,18 +291,25 @@ export function GameMechanics({ onClose }: { onClose: () => void }) {
               )}
               
               <div>
-                <div style={{ fontSize: '18px', color: '#667788', fontWeight: 'bold', marginBottom: 10 }}>🔒 Locked ({lockedAchievements.length})</div>
-                {lockedAchievements.map(a => (
-                  <div key={a.id} style={{ background: '#0a0a14', border: '1px solid #223355', padding: '14px 16px', marginBottom: 8, opacity: 0.6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: '32px', filter: 'grayscale(100%)' }}>{a.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '18px', color: '#445566', fontWeight: 'bold' }}>{a.title}</div>
-                        <div style={{ fontSize: '15px', color: '#334455' }}>{a.description}</div>
+                <div style={{ fontSize: '20px', color: '#667788', fontWeight: 'bold', marginBottom: 10 }}>🔒 Locked Achievements ({lockedAchievements.length})</div>
+                {lockedAchievements.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#00ff88', fontSize: '16px' }}>
+                    🎉 All achievements unlocked!
+                  </div>
+                ) : (
+                  lockedAchievements.map(a => (
+                    <div key={a.id} style={{ background: '#0a0a18', border: '2px solid #334466', padding: '14px 16px', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: '32px', filter: 'grayscale(100%)', opacity: 0.5 }}>{a.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '18px', color: '#667788', fontWeight: 'bold' }}>{a.title}</div>
+                          <div style={{ fontSize: '15px', color: '#445566' }}>{a.description}</div>
+                        </div>
+                        <div style={{ background: '#1a1a2a', padding: '4px 10px', fontSize: '13px', color: '#445566' }}>🔒</div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}

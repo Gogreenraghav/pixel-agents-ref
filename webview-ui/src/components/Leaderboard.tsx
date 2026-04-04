@@ -255,16 +255,16 @@ export function Leaderboard({ onClose }: { onClose: () => void }) {
             {/* Table Header */}
             <div style={{
               display: 'grid', gridTemplateColumns: '60px 1fr 80px 100px 100px',
-              padding: '12px 16px', background: '#0d0d1e', borderBottom: '1px solid #334466',
-              fontSize: '14px', fontWeight: 'bold', color: '#667788',
+              padding: '12px 16px', background: '#0d0d1e', borderBottom: '2px solid #334466',
+              fontSize: '15px', fontWeight: 'bold',
             }}>
-              <div>Rank</div>
-              <div>Company</div>
-              <div>Level</div>
-              <div style={{ textAlign: 'right' }}>
-                {activeTab === 'xp' ? 'XP' : activeTab === 'tasks' ? 'Tasks' : activeTab === 'revenue' ? 'Revenue' : activeTab === 'agents' ? 'Agents' : 'XP'}
+              <div style={{ color: '#ffdd44' }}>🏆 Rank</div>
+              <div style={{ color: '#66ddff' }}>🏢 Company</div>
+              <div style={{ color: '#ff88ff' }}>⭐ Level</div>
+              <div style={{ color: '#00ff88', textAlign: 'right' }}>
+                {activeTab === 'xp' ? '⚡ XP' : activeTab === 'tasks' ? '✅ Tasks' : activeTab === 'revenue' ? '💰 Revenue' : activeTab === 'agents' ? '👥 Agents' : '⚡ XP'}
               </div>
-              <div style={{ textAlign: 'right' }}>Status</div>
+              <div style={{ color: '#ff8844', textAlign: 'right' }}>📊 Status</div>
             </div>
 
             {/* Table Rows */}

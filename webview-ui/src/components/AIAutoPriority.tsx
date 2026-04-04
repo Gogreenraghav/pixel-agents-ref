@@ -349,26 +349,35 @@ ${JSON.stringify(taskData, null, 2)}
         <div style={{ background: '#0a0a18', borderBottom: '2px solid #334466', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: '28px' }}>🎯</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#66ddff' }}>AI Auto-Prioritization</div>
-            <div style={{ fontSize: '16px', color: '#667788' }}>AI analyzes tasks and assigns priority scores</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffdd44' }}>AI Auto-Prioritization</div>
+            <div style={{ fontSize: '16px', color: '#667788', marginTop: 4 }}>
+              🔬 <span style={{ color: '#66ddff', fontWeight: 'bold' }}>AI Considers:</span>
+              <span style={{ color: '#ff8844' }}> Deadlines</span> +
+              <span style={{ color: '#00ff88' }}> Business Impact</span> +
+              <span style={{ color: '#ff88ff' }}> Urgency</span>
+            </div>
           </div>
+          <button onClick={() => setShowConfig(true)} style={{ background: '#1a1a1a', border: '2px solid #66ddff', color: '#66ddff', padding: '8px 14px', fontSize: '14px', cursor: 'pointer' }}>
+            ⚙️ AI
+          </button>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#ff6666', fontSize: '22px', cursor: 'pointer' }}>✕</button>
         </div>
 
         {/* Controls */}
-        <div style={{ padding: '16px 20px', borderBottom: '2px solid #223355', display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ padding: '20px', borderBottom: '2px solid #223355', background: '#0a0a18', display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={analyzeAndPrioritize}
             disabled={loading}
             style={{
-              padding: '12px 24px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
-              background: loading ? '#1a1a00' : '#0a1a0a',
+              padding: '16px 32px', fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold',
+              background: loading ? '#1a1a00' : 'linear-gradient(135deg, #0a2a0a 0%, #1a3a1a 100%)',
               color: loading ? '#ffdd44' : '#00ff88',
-              border: '2px solid #00ff88',
+              border: '3px solid #00ff88',
               cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: loading ? 'none' : '0 0 20px rgba(0, 255, 136, 0.3)',
             }}
           >
-            {loading ? '⏳ Analyzing...' : '🎯 Analyze Priorities'}
+            {loading ? '⏳ Analyzing Tasks...' : '🎯 Analyze Tasks & Assign Priorities'}
           </button>
           <div style={{ flex: 1 }} />
           {prioritized.length > 0 && (
@@ -376,14 +385,14 @@ ${JSON.stringify(taskData, null, 2)}
               onClick={applyPriorities}
               disabled={applied}
               style={{
-                padding: '10px 20px', fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold',
+                padding: '12px 24px', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold',
                 background: applied ? '#0a2a0a' : '#1a2a0a',
                 color: applied ? '#00ff88' : '#ffdd44',
-                border: `2px solid ${applied ? '#00ff88' : '#ffdd44'}`,
+                border: `3px solid ${applied ? '#00ff88' : '#ffdd44'}`,
                 cursor: applied ? 'not-allowed' : 'pointer',
               }}
             >
-              {applied ? '✅ Applied!' : '💾 Apply Priorities'}
+              {applied ? '✅ Priorities Applied!' : '💾 Apply All Priorities'}
             </button>
           )}
         </div>
@@ -467,9 +476,14 @@ ${JSON.stringify(taskData, null, 2)}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '2px solid #223355', background: '#0a0a18' }}>
-          <div style={{ fontSize: '14px', color: '#445566' }}>
-            💡 AI considers deadlines and business impact to assign priority scores (1-5).
+        <div style={{ padding: '14px 20px', borderTop: '2px solid #223355', background: '#0a0a18' }}>
+          <div style={{ fontSize: '15px', color: '#556677' }}>
+            <span style={{ color: '#ffdd44', fontWeight: 'bold' }}>🎯 Priority System:</span>
+            <span style={{ color: '#ff4444' }}> 🔴 Urgent </span>
+            <span style={{ color: '#ff8844' }}>| 🟠 High </span>
+            <span style={{ color: '#ffdd44' }}>| 🟡 Medium </span>
+            <span style={{ color: '#88ff88' }}>| 🟢 Low </span>
+            <span style={{ color: '#66ddff' }}>| 🔵 Backlog</span>
           </div>
         </div>
       </div>
