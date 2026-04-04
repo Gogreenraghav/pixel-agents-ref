@@ -4,6 +4,7 @@ import type { WorkspaceFolder } from '../hooks/useExtensionMessages.js';
 import { SettingsModal } from './SettingsModal.js';
 
 interface BottomToolbarProps {
+  className?: string;
   onHireAgent?: (name: string, role: string, dept: string, salary: number, currency: string, country: string, aiConfig?: any) => void;
   currentFloor?: number;
   onFloorChange?: (floor: number) => void;
@@ -352,7 +353,9 @@ function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: s
   );
 }
 
-export function BottomToolbar({ className, ...props }: BottomToolbarProps) {
+export function BottomToolbar({
+  className,
+  isEditMode,
   onToggleEditMode,
   isDebugMode,
   onToggleDebugMode,
@@ -414,7 +417,7 @@ export function BottomToolbar({ className, ...props }: BottomToolbarProps) {
 
   return (
     <>
-      <div style={panelStyle}>
+      <div className={className} style={panelStyle}>
 
         {/* HIRE AGENT button */}
         <div style={{ position: 'relative' }}>
