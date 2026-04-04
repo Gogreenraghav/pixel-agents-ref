@@ -17,6 +17,7 @@ interface BottomToolbarProps {
   onAPIClick?: () => void;
   onFinanceClick?: () => void;
   onMessagingClick?: () => void;
+  onReportsClick?: () => void;
   isEditMode: boolean;
   onToggleEditMode: () => void;
   isDebugMode: boolean;
@@ -365,6 +366,7 @@ export function BottomToolbar({
   onAPIClick,
   onFinanceClick,
   onMessagingClick,
+  onReportsClick,
 }: BottomToolbarProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -650,6 +652,21 @@ export function BottomToolbar({
           title="Messaging (Telegram/WhatsApp)"
         >
           📱 Connect
+        </button>
+
+        {/* AI REPORTS button */}
+        <button
+          onClick={onReportsClick}
+          onMouseEnter={() => setHovered('reports')}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            ...btnBase,
+            background:
+              hovered === 'reports' ? 'var(--pixel-btn-hover-bg)' : btnBase.background,
+          }}
+          title="AI Reports"
+        >
+          🤖 Reports
         </button>
 
         <div style={{ position: 'relative' }}>
