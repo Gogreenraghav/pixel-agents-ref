@@ -352,8 +352,7 @@ function HireDialog({ onClose, onHire }: { onClose: () => void; onHire: (name: s
   );
 }
 
-export function BottomToolbar({
-  isEditMode,
+export function BottomToolbar({ className, ...props }: BottomToolbarProps) {
   onToggleEditMode,
   isDebugMode,
   onToggleDebugMode,

@@ -1160,6 +1160,7 @@ function App() {
         </div>
       )}
       {!isEmbedMode && <BottomToolbar
+        className="bottom-toolbar"
         isEditMode={editor.isEditMode}
         onToggleEditMode={editor.handleToggleEditMode}
         isDebugMode={isDebugMode}

@@ -1,300 +1,147 @@
-/* Mobile Responsive Styles for Pixel Office - FIXED */
+/* Pixel Office - Bottom Toolbar Scroll - ALL SCREENS */
 
+/* Bottom toolbar scroll for ALL screens */
+.bottom-toolbar {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #66ddff #1a1a2a;
+}
+
+/* Webkit scrollbar (Chrome, Safari) */
+.bottom-toolbar::-webkit-scrollbar {
+  height: 12px !important;
+  width: 12px !important;
+  display: block !important;
+}
+
+.bottom-toolbar::-webkit-scrollbar-track {
+  background: #1a1a2a !important;
+  border-radius: 6px !important;
+  border: 1px solid #334466 !important;
+}
+
+.bottom-toolbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #66ddff, #3388cc) !important;
+  border-radius: 6px !important;
+  border: 2px solid #1a1a2a !important;
+  box-shadow: 0 0 8px #66ddff !important;
+}
+
+.bottom-toolbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #88ddff, #55aadd) !important;
+}
+
+/* Firefox scrollbar */
+.bottom-toolbar {
+  scrollbar-width: thin;
+  scrollbar-color: #66ddff #1a1a2a;
+}
+
+/* Bottom toolbar buttons - ALL screens */
+.bottom-toolbar button {
+  min-width: 75px !important;
+  max-width: 100px !important;
+  min-height: 50px !important;
+  padding: 10px 8px !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Scroll hint arrow */
+.bottom-toolbar-scroll-hint {
+  position: fixed;
+  bottom: 100px;
+  right: 10px;
+  background: #66ddff;
+  color: #000;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  animation: bounce 1s infinite;
+  z-index: 10001;
+  pointer-events: none;
+  box-shadow: 0 0 15px #66ddff;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8px); }
+}
+
+/* Mobile specific */
 @media (max-width: 768px) {
-  /* Base */
-  * {
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  html, body {
-    scroll-behavior: smooth;
-    overflow-x: hidden;
-  }
-  
-  body {
-    padding-bottom: 140px !important;
-    overflow-y: auto !important;
-    height: auto !important;
-    min-height: 100vh;
-  }
-  
-  #root {
-    min-height: 100vh;
-    overflow-y: auto !important;
-  }
-  
-  /* Office view - scrollable and starts at top */
-  .office-view,
-  [class*="office"] {
-    scroll-margin-top: 0;
-    overflow-y: auto !important;
-    max-height: 60vh;
-  }
-  
-  /* Main content starts at top */
-  [class*="main-content"],
-  [class*="container"] {
-    scroll-snap-align: start;
-  }
-  
-  /* Modal improvements */
-  [style*="position: fixed"][style*="inset: 0"],
-  .modal {
-    width: 100% !important;
-    max-width: 100vw !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-    inset: 0 !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Modal inner content */
-  [style*="maxHeight: '90vh'"],
-  [style*="maxHeight:90vh"],
-  .modal-content {
-    max-height: 100vh !important;
-    height: auto !important;
-    min-height: 100vh;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* SCROLLABLE CONTAINERS - CRITICAL FIX */
-  
-  /* All flex containers with horizontal items */
-  [style*="display: 'flex'"],
-  [style*="display:flex"],
-  [style*="flexDirection: 'row'"],
-  [style*="flex-direction:row"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    flex-wrap: nowrap !important;
-    padding-bottom: 10px;
-  }
-  
-  /* Child elements in horizontal scroll */
-  [style*="display: 'flex'"] > *,
-  [style*="display:flex"] > *,
-  [style*="flexDirection: 'row'"] > *,
-  [style*="flex-direction:row"] > * {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-  }
-  
-  /* Specifically the tab/floor type selectors */
-  [title*="Floor"],
-  [title*="floor"],
-  [class*="floor-selector"],
-  [class*="tab-types"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-  }
-  
-  /* Scroll indicators */
-  [style*="display: 'flex'"]::after,
-  [style*="display:flex"]::after {
-    content: '→';
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #66ddff;
-    font-size: 20px;
-    animation: bounce 1s infinite;
-    pointer-events: none;
-    z-index: 100;
-  }
-  
-  @keyframes bounce {
-    0%, 100% { transform: translateY(-50%) translateX(0); }
-    50% { transform: translateY(-50%) translateX(5px); }
-  }
-  
-  /* Scrollable content areas */
-  [style*="overflowY: 'auto'"],
-  [style*="overflow-y: auto"],
-  [style*="overflowY:auto"] {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    max-height: 50vh;
-  }
-  
-  /* Vertical scroll areas */
-  [style*="overflowX: 'auto'"],
-  [style*="overflow-x: auto"],
-  .scroll-y {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Bottom toolbar - HORIZONTAL SCROLL WITH SCROLL INDICATOR */
-  .bottom-toolbar,
-  [class*="toolbar"],
-  [style*="BottomToolbar"],
-  div[style*="position: fixed"][style*="bottom: 0"] {
+  .bottom-toolbar {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 9999 !important;
     height: 120px !important;
-    padding: 10px 10px 20px 10px !important;
+    z-index: 9999 !important;
     background: #0a0a18 !important;
     border-top: 3px solid #334466 !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    justify-content: flex-start !important;
-    gap: 8px !important;
-    white-space: nowrap !important;
-    /* Scroll shadow indicator */
-    mask-image: linear-gradient(to right, black 90%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    padding: 10px !important;
   }
   
-  /* Right scroll indicator */
-  .bottom-toolbar::after,
-  [class*="toolbar"]::after,
-  div[style*="position: fixed"][style*="bottom: 0"]::after {
-    content: "→";
-    position: fixed;
-    right: 5px;
-    bottom: 40px;
-    color: #66ddff;
-    font-size: 24px;
-    font-weight: bold;
-    animation: scrollHint 1.5s infinite;
-    z-index: 10000;
-    pointer-events: none;
-    text-shadow: 0 0 10px #66ddff;
-  }
-  
-  @keyframes scrollHint {
-    0%, 100% { opacity: 1; transform: translateX(0); }
-    50% { opacity: 0.5; transform: translateX(8px); }
-  }
-  
-  /* Bottom toolbar buttons - horizontal scroll */
-  .bottom-toolbar button,
-  [style*="position: fixed"][style*="bottom: 0"] button,
-  div[style*="position: fixed"][style*="bottom: 0"] > * {
+  .bottom-toolbar button {
     min-width: 80px !important;
     max-width: 100px !important;
     min-height: 60px !important;
-    padding: 12px 10px !important;
-    font-size: 12px !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-  }
-  
-  /* Visible scrollbar for bottom toolbar */
-  .bottom-toolbar::-webkit-scrollbar,
-  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar {
-    height: 8px !important;
-    display: block !important;
-  }
-  
-  .bottom-toolbar::-webkit-scrollbar-track,
-  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar-track {
-    background: #1a1a2a !important;
-    border-radius: 4px !important;
-  }
-  
-  .bottom-toolbar::-webkit-scrollbar-thumb,
-  [style*="position: fixed"][style*="bottom: 0"]::-webkit-scrollbar-thumb {
-    background: #66ddff !important;
-    border-radius: 4px !important;
-  }
-  
-  /* Scroll to top on load */
-  html {
-    scroll-top: 0 !important;
-  }
-  
-  /* Force scroll to top */
-  .scroll-top {
-    scroll-top: 0;
-    scroll-behavior: smooth;
   }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
-  body {
-    padding-bottom: 160px !important;
-  }
-  
-  /* Even smaller buttons */
   .bottom-toolbar button {
-    min-width: 50px !important;
-    padding: 6px 4px !important;
-    font-size: 9px !important;
-  }
-  
-  /* Modal takes full screen */
-  .modal {
-    width: 100vw !important;
-    height: 100vh !important;
-    border-radius: 0 !important;
+    min-width: 70px !important;
+    max-width: 85px !important;
+    min-height: 55px !important;
+    font-size: 10px !important;
   }
 }
 
-/* Landscape mobile */
-@media (max-height: 500px) and (orientation: landscape) {
-  .modal {
-    max-height: 100vh !important;
-  }
-  
-  body {
-    padding-bottom: 80px !important;
-  }
-}
-
-/* Touch improvements */
-@media (hover: none) and (pointer: coarse) {
-  button:hover {
-    transform: none !important;
-  }
-  
-  button:active {
-    opacity: 0.8;
+/* Large screens - also show scrollbar */
+@media (min-width: 769px) {
+  .bottom-toolbar {
+    position: relative !important;
+    height: auto !important;
+    min-height: 70px !important;
+    background: #0a0a18 !important;
+    border-bottom: 2px solid #334466 !important;
+    border-top: none !important;
   }
 }
 
-/* Scrollbar styling for webkit */
-@media (max-width: 768px) {
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: #0a0a18;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #334466;
-    border-radius: 3px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: #66ddff;
-  }
+/* Content area scroll - ALL screens */
+.main-content-area {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbar but allow scroll */
-.scroll-hide::-webkit-scrollbar {
-  display: none;
+/* Horizontal scroll for tabs - ALL screens */
+.tab-scrollable {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  display: flex !important;
+  flex-wrap: nowrap !important;
 }
 
-.scroll-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.tab-scrollable::-webkit-scrollbar {
+  height: 8px !important;
+  display: block !important;
+}
+
+.tab-scrollable::-webkit-scrollbar-track {
+  background: #1a1a2a !important;
+  border-radius: 4px !important;
+}
+
+.tab-scrollable::-webkit-scrollbar-thumb {
+  background: #66ddff !important;
+  border-radius: 4px !important;
 }
