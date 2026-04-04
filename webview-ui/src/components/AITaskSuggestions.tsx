@@ -392,6 +392,17 @@ Select max 5 most important tasks. Consider agent skills, workload, and task typ
           >
             {loading ? '⏳ Analyzing...' : '🧠 Get Suggestions'}
           </button>
+          <button
+            onClick={() => setShowConfig(true)}
+            style={{
+              padding: '8px 16px', fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold',
+              background: '#1a1a1a', color: '#8899aa',
+              border: '2px solid #334466',
+              cursor: 'pointer',
+            }}
+          >
+            ⚙️ AI Config
+          </button>
           <div style={{ flex: 1 }} />
           {suggestions.length > 0 && (
             <div style={{ fontSize: '15px', color: '#667788' }}>{suggestions.length} suggestions</div>

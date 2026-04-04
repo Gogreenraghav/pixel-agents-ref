@@ -399,6 +399,17 @@ Keep it under 200 words. Be specific and actionable.`;
           </div>
           <div style={{ flex: 1 }} />
           <button
+            onClick={() => setShowConfig(true)}
+            style={{
+              padding: '8px 16px', fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold',
+              background: '#1a1a1a', color: '#8899aa',
+              border: '2px solid #334466',
+              cursor: 'pointer',
+            }}
+          >
+            ⚙️ AI Config
+          </button>
+          <button
             onClick={generateReport}
             disabled={loading}
             style={{
